@@ -14,7 +14,7 @@ Allows any media in your WordPress uploads folder to be uploaded to Rackspace's 
 
 = Version 0.0.1 =
 
-I've tested this quite thoroughly. It seems to be very stable.
+I've tested this quite thoroughly. Very stable.
 
 == Installation ==
 
@@ -22,6 +22,14 @@ I've tested this quite thoroughly. It seems to be very stable.
 2. Activate the plugin through the 'Plugins' menu in WordPress
 3. Backup uploads directory (optional, if doing initial upload)
 4. Use it! Save money!
+
+== Screenshots ==
+
+1. Admin page when all files are synced.
+
+2. Admin page when there files that need synced.
+
+3. Admin page while syncing files in real-time.
 
 == Changelog ==
 
