@@ -66,7 +66,7 @@ function remove_cdn_files( $post_id ){
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 	
 	// Get attachment metadata so we can delete all attachments associated with this image
-	$attachment_metadata = $wpdb->get_results("SELECT meta_value FROM $wpdb->postmeta WHERE post_id = '$post_id' AND meta_key='_wp_attachment_metadata'");
+	$attachment_metadata = $wpdb->get_results("SELECT meta_value FROM ".$wpdb->prefix."postmeta WHERE post_id = '$post_id' AND meta_key='_wp_attachment_metadata'");
 	if ($wpdb->num_rows > 0) {
 		// Get all image sizes for attachment
 		$all_image_sizes = unserialize($attachment_metadata[0]->meta_value);
@@ -107,7 +107,7 @@ function verify_filename($filename, $filename_raw = null) {
 	$ext  = empty($info['extension']) ? '' : '.' . $info['extension'];
 
 	// Get attachment metadata so we can delete all attachments associated with this image
-	$existing_files = $wpdb->get_results("SELECT guid FROM $wpdb->posts WHERE guid LIKE '%".preg_replace('/[0-9]*$/', '', $info['filename'])."%".$info['extension']."'");
+	$existing_files = $wpdb->get_results("SELECT guid FROM ".$wpdb->prefix."posts WHERE guid LIKE '%".preg_replace('/[0-9]*$/', '', $info['filename'])."%".$info['extension']."'");
 
 	// Check if file exists
 	if (count($existing_files) > 0) {
