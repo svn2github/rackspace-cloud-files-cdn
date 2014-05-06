@@ -13,7 +13,12 @@
 	$settings_error = false;
 
 	// Get files and counts
-	$local_files = load_files_needing_upload();
+	try {
+		$local_files = load_files_needing_upload();
+	} catch (Exception $e) {
+		$local_files = array();
+		$settings_error = true;
+	}
 	$local_count = count($local_files);
 ?>
 <script type="text/javascript">
@@ -27,7 +32,7 @@
 		<div id="error_notifications">
 		<?php
 			// Show error if error
-			if (isset($local_files['response']) && $local_files['response'] == 'error') {
+			if ((isset($local_files['response']) && $local_files['response'] == 'error') || $settings_error == true) {
 				$settings_error = true;
 		?>
 			<div id="setting-error-settings_updated" class="error settings-error"> 
@@ -42,7 +47,7 @@
 			$show_file_count = (count($local_files) == 1) ? 'is ('.$local_count.') file' : 'are ('.$local_count.') files';
 			$show_needs = (count($local_files) == 1) ? 'needs' : 'need';
 		?>
-		<div id="upload_files_to_cdn">
+		<div id="upload_files_to_cdn"<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>
 			<h3>Moving Files To CDN</h3>
 			<div id="setting-error-settings_updated" class="updated settings-error"<?php echo ($local_count == 0) ? ' style="display:none;"' : '' ?>> 
 				<p><strong>Hey! You there!</strong><br />There <?php echo $show_file_count ?> in your local WordPress uploads directory that <?php echo $show_needs ?> synchronized to the CDN. Click the <em>Synchronize</em> button to upload them.</p>
