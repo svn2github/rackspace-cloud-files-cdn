@@ -99,7 +99,7 @@ function verify_filename($filename, $filename_raw = null) {
 
 	// Get CDN information
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 	$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
 
 	// Get file info
@@ -153,7 +153,7 @@ function upload_existing_file() {
 
 	// Create new CDN instance and get settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Get file to upload
 	$file_to_upload = $_REQUEST['file_path'];
@@ -195,7 +195,7 @@ add_action('wp_ajax_upload_existing_file', 'upload_existing_file');
 function set_cdn_path($attachment) {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Uploads folder data
 	$upload_data = wp_upload_dir();
@@ -243,7 +243,7 @@ add_filter('wp_get_attachment_url', 'set_cdn_path');
 function load_files_needing_upload() {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Array to store files needing removed
 	$files_needing_upload = array();
@@ -281,7 +281,7 @@ function load_files_needing_upload() {
 function verify_successful_upload( $file_path ) {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 	$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
 
 	// Define variables needed

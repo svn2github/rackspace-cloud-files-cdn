@@ -10,6 +10,7 @@
 	// Define session data
 	defined('RS_CDN_PATH') or die();
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
+	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Save CDN settings
 	save_cdn_settings();
