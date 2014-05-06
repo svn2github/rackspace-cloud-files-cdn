@@ -3,7 +3,7 @@
 Plugin Name: Rackspace CDN
 Plugin URI: http://www.paypromedia.com/
 Description: This plugin stores WordPress media files on, and delivers them from, the Rackspace CDN.
-Version: 0.0.1
+Version: 0.0.2
 Contributors: bstump
 Author URI: http://www.paypromedia.com/individuals/bobbie-stump/
 License: GPLv2
