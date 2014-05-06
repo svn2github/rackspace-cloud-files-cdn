@@ -1,4 +1,8 @@
 <?php
+	// Global CDN variable
+	// global $rs_cdn;
+	// $rs_cdn = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
+
 	// Start session, if not started
 	if( !session_id() )
 		session_start();
@@ -9,17 +13,18 @@
 
 	// Save CDN settings
 	save_cdn_settings();
-	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
 	$settings_error = false;
 
 	// Get files and counts
+	$local_files = load_files_needing_upload();
+	$local_count = count($local_files);
+
+	// Check if connection has been made by grabbing container
 	try {
-		$local_files = load_files_needing_upload();
+		$container = $_SESSION['cdn']->container_object();
 	} catch (Exception $e) {
-		$local_files = array();
 		$settings_error = true;
 	}
-	$local_count = count($local_files);
 ?>
 <script type="text/javascript">
 	var plugin_path = "<?php echo RS_CDN_URL ?>";
@@ -39,19 +44,20 @@
 				<p><strong>Ruh-Roh!</strong><br />Your settings are busted. Please verify and make sure you have the correct credentials.</p>
 			</div>
 		<?php
+			} else {
+				// Show file upload notification
+				$show_file_count = (count($local_files) == 1) ? 'is ('.$local_count.') file' : 'are ('.$local_count.') files';
+				$show_needs = (count($local_files) == 1) ? 'needs' : 'need';
+		?>
+				<div id="setting-error-settings_updated" class="updated settings-error"<?php echo ($local_count == 0) ? ' style="display:none;"' : '' ?>> 
+				<p><strong>Hey! You there!</strong><br />There <?php echo $show_file_count ?> in your local WordPress uploads directory that <?php echo $show_needs ?> synchronized to the CDN. Click the <em>Synchronize</em> button to upload them.</p>
+			</div>
+		<?php
 			}
 		?>
 		</div>
-		<?php
-			// Show file upload notification
-			$show_file_count = (count($local_files) == 1) ? 'is ('.$local_count.') file' : 'are ('.$local_count.') files';
-			$show_needs = (count($local_files) == 1) ? 'needs' : 'need';
-		?>
 		<div id="upload_files_to_cdn"<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>
 			<h3>Moving Files To CDN</h3>
-			<div id="setting-error-settings_updated" class="updated settings-error"<?php echo ($local_count == 0) ? ' style="display:none;"' : '' ?>> 
-				<p><strong>Hey! You there!</strong><br />There <?php echo $show_file_count ?> in your local WordPress uploads directory that <?php echo $show_needs ?> synchronized to the CDN. Click the <em>Synchronize</em> button to upload them.</p>
-			</div>
 			<table class="form-table">
 				<tbody>
 					<tr valign="top">

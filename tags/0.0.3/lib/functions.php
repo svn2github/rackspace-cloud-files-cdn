@@ -244,7 +244,6 @@ function load_files_needing_upload() {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 	$_SESSION['cdn_settings'] = (isset($_SESSION['cdn_settings'])) ? $_SESSION['cdn_settings'] : $_SESSION['cdn']->settings();
-	$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
 
 	// Array to store files needing removed
 	$files_needing_upload = array();
