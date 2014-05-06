@@ -17,11 +17,11 @@ defined('WP_PLUGIN_URL') or die('Restricted access');
 
 global $wpdb;
 
-define('RS_CDN_PATH', ABSPATH.PLUGINDIR.'/rackspace-cdn/');
-define('RS_CDN_URL', WP_PLUGIN_URL.'/rackspace-cdn/');
+define('RS_CDN_PATH', ABSPATH.PLUGINDIR.'/rackspace-cloud-files-cdn/');
+define('RS_CDN_URL', WP_PLUGIN_URL.'/rackspace-cloud-files-cdn/');
 define('RS_CDN_ROUTE', get_bloginfo('url').'/?rs_cdn_routing=');
 define('RS_CDN_OPTIONS', "wp_rs_cdn_settings" );
-define('RS_CDN_LOADIND_URL', WP_PLUGIN_URL.'/rackspace-cdn/assets/images/loading.gif');
+define('RS_CDN_LOADIND_URL', WP_PLUGIN_URL.'/rackspace-cloud-files-cdn/assets/images/loading.gif');
 
 require_once(ABSPATH.'wp-admin/includes/upgrade.php');
 require_once("lib/functions.php");
