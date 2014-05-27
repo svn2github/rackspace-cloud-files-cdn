@@ -124,6 +124,14 @@
 				</tr>
 				<tr valign="top">
 					<th scope="row">
+						<label for="rs_cdn[custom_cname]">Custom CNAME</label>
+					</th>
+					<td>
+						<input name="rs_cdn[custom_cname]" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" required="required" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row">
 						<label for="rs_cdn[use_ssl]">Image Paths</label>
 					</th>
 					<td>

@@ -100,7 +100,11 @@ function verify_filename($filename, $filename_raw = null) {
 	// Get CDN information
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
-	$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+	if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
+		 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+	} else {
+		$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+	}
 
 	// Get file info
 	$info = pathinfo($filename);
@@ -203,7 +207,11 @@ function set_cdn_path($attachment) {
 	// Get public CDN URL
 	try {
 		if (!isset($_SESSION['cdn_url']) || is_null($_SESSION['cdn_url']) || trim($_SESSION['cdn_url']) == '') {
-			$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+			if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
+				 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+			} else {
+				$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+			}
 		}
 	} catch (Exception $e) {
 		return $attachment;
@@ -282,7 +290,11 @@ function verify_successful_upload( $file_path ) {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
-	$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+	if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
+		 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+	} else {
+		$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+	}
 
 	// Define variables needed
 	$upload_dir = wp_upload_dir();

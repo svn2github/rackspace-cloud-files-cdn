@@ -23,6 +23,11 @@ function rs_cdn_admin_pages() {
  */
 function save_cdn_settings() {
 	if (is_admin() && current_user_can('manage_options') && !empty($_POST) && !empty($_POST['rs_cdn'])) {
+		// Turn off SSL if custom CNAME is being used
+		if ($_POST['rs_cdn']['custom_cname']) {
+			unset($_POST['rs_cdn']['use_ssl']);
+		}
+
 		$cdn_settings = $_POST['rs_cdn'];
 		update_option(RS_CDN_OPTIONS, $cdn_settings);
 		$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings = $cdn_settings;
