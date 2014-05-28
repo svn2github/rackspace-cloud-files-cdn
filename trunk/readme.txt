@@ -12,9 +12,9 @@ Stores all of your WordPress media on Rackspace's Cloud Files CDN. Once the file
 
 Allows any media in your WordPress uploads folder to be uploaded to Rackspace's Cloud Files CDN. ** If you are doing an initial upload, backup your uploads directory first, just in case. I’ve not had any issues, but wanted to include this disclaimer.
 
-= Version 0.0.5 =
+= Version 0.0.6 =
 
-Fixed an issue with CDN settings breaking.
+Added custom CNAME option.
 
 == Installation ==
 

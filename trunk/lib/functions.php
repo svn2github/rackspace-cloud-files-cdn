@@ -206,12 +206,10 @@ function set_cdn_path($attachment) {
 
 	// Get public CDN URL
 	try {
-		if (!isset($_SESSION['cdn_url']) || is_null($_SESSION['cdn_url']) || trim($_SESSION['cdn_url']) == '') {
-			if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
-				 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
-			} else {
-				$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
-			}
+		if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
+			 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+		} else {
+			$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
 		}
 	} catch (Exception $e) {
 		return $attachment;

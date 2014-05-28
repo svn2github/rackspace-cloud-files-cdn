@@ -127,7 +127,7 @@
 						<label for="rs_cdn[custom_cname]">Custom CNAME</label>
 					</th>
 					<td>
-						<input name="rs_cdn[custom_cname]" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" required="required" />
+						<input name="rs_cdn[custom_cname]" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -135,7 +135,7 @@
 						<label for="rs_cdn[use_ssl]">Image Paths</label>
 					</th>
 					<td>
-						<input type="checkbox" name="rs_cdn[use_ssl]" value="true" <?php echo (isset($_SESSION['cdn_settings']['use_ssl']) && $_SESSION['cdn_settings']['use_ssl'] == true) ? 'checked': '' ?>> 
+						<input type="checkbox" name="rs_cdn[use_ssl]" value="true" <?php echo (isset($_SESSION['cdn_settings']['use_ssl']) && $_SESSION['cdn_settings']['use_ssl'] == true) ? 'checked': '' ?><?php echo (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') ? ' disabled' : '' ?>> 
 						<span class="description">Use SSL (https) image paths?</span>
 					</td>
 				</tr>
