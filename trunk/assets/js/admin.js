@@ -95,6 +95,20 @@ $rs_cdn(document).ready(function() {
 		$rs_cdn(this).removeAttr('disabled');
 		$rs_cdn(this).html('Synchronize');
 	});
+
+	// Check if custon CNAME is blank or not, set SSL accordingly
+	var rs_cdn_has_custom_cname = $rs_cdn('#rs_cdn_use_ssl').attr('checked');
+	$rs_cdn('#rs_cdn_custom_cname').keyup(function() {
+		if ($rs_cdn(this).val().length > 0) {
+			$rs_cdn('#rs_cdn_use_ssl').attr('disabled','disabled');
+			$rs_cdn('#rs_cdn_use_ssl').removeAttr('checked');
+		} else {
+			$rs_cdn('#rs_cdn_use_ssl').removeAttr('disabled');
+			if (rs_cdn_has_custom_cname) {
+				$rs_cdn('#rs_cdn_use_ssl').attr('checked','checked');
+			}
+		}
+	});
 });
 
 // Retry uploading attachment

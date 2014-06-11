@@ -1,8 +1,4 @@
 <?php
-	// Global CDN variable
-	// global $rs_cdn;
-	// $rs_cdn = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-
 	// Start session, if not started
 	if( !session_id() )
 		session_start();
@@ -13,7 +9,9 @@
 	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Save CDN settings
-	save_cdn_settings();
+	if (isset($_POST['save_cdn_settings'])) {
+		save_cdn_settings();
+	}
 	$settings_error = false;
 
 	// Get files and counts
@@ -42,7 +40,7 @@
 				$settings_error = true;
 		?>
 			<div id="setting-error-settings_updated" class="error settings-error"> 
-				<p><strong>Ruh-Roh!</strong><br />Your settings are busted. Please verify and make sure you have the correct credentials.</p>
+				<p><strong>Ruh-Roh!</strong><br /><?php echo isset($local_files['message']) ? $local_files['message'] : 'Your settings are busted. Please verify and make sure you have the correct credentials.' ?></p>
 			</div>
 		<?php
 			} else {
@@ -81,8 +79,30 @@
 			</table>
 		</div>
 		<h3<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>Manage Files</h3>
+		<?php
+			/* $files_to_upload = array();
+			$upload_dir = wp_upload_dir();
+			$files = $_SESSION['cdn']->container_object()->objectList();
+			while ($file = $files->next()) {
+			    // $upload_dir['basedir'].'/'
+			    if (!in_array('needle', $files_to_upload)) {
+			    	$files_to_upload[] = array('file_name' => $file->name, 'file_size' => $file->bytes);
+			    }
+			}
+			echo '<pre>'.print_r($local_files, true).'</pre>';
+			echo '<STRONG>********** '.count($files_to_upload).' FILES **********</STRONG>'; */
+		?>
 		<table class="form-table"<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>
 			<tbody>
+				<!-- <tr valign="top">
+					<th scope="row">
+						<label for="rs_cdn[use_ssl]">Remove Local Files</label>
+					</th>
+					<td>
+						<input type="checkbox" name="rs_cdn[remove_local_files]" value="true" <?php echo (isset($_SESSION['cdn_settings']['remove_local_files']) && $_SESSION['cdn_settings']['remove_local_files'] == true) ? 'checked': '' ?>> 
+						<span class="description">Remove files from local server when uploaded to CDN?</span>
+					</td>
+				</tr> -->
 				<tr valign="top">
 					<th scope="row">
 						<label>Files To Ignore</label>
@@ -127,16 +147,16 @@
 						<label for="rs_cdn[custom_cname]">Custom CNAME</label>
 					</th>
 					<td>
-						<input name="rs_cdn[custom_cname]" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" />
+						<input name="rs_cdn[custom_cname]" id="rs_cdn_custom_cname" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" />
 					</td>
 				</tr>
 				<tr valign="top">
 					<th scope="row">
-						<label for="rs_cdn[use_ssl]">Image Paths</label>
+						<label for="rs_cdn[use_ssl]">File Paths</label>
 					</th>
 					<td>
-						<input type="checkbox" name="rs_cdn[use_ssl]" value="true" <?php echo (isset($_SESSION['cdn_settings']['use_ssl']) && $_SESSION['cdn_settings']['use_ssl'] == true) ? 'checked': '' ?><?php echo (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') ? ' disabled' : '' ?>> 
-						<span class="description">Use SSL (https) image paths?</span>
+						<input type="checkbox" name="rs_cdn[use_ssl]" id="rs_cdn_use_ssl" value="true" <?php echo (isset($_SESSION['cdn_settings']['use_ssl']) && $_SESSION['cdn_settings']['use_ssl'] == true) ? 'checked': '' ?><?php echo (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') ? ' disabled' : '' ?>> 
+						<span class="description">Use SSL (https) file paths?</span>
 					</td>
 				</tr>
 				<tr valign="top">

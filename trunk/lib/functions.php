@@ -36,7 +36,7 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value=''){
 		// Upload files
 		foreach ($files_to_upload as $cur_file) {
 			// Set file name
-			$file_name = trim($upload_dir['subdir'], '/').'/'.basename($cur_file);
+			$file_name = trim(str_replace($upload_dir['basedir'], '', $cur_file), '/');
 
 			// Upload file to CDN, add to file check
 			try {
@@ -47,8 +47,10 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value=''){
 				die();
 			}
 
-			// Delete file when successfully uploaded
-			@unlink($cur_file);
+			// Delete file when successfully uploaded, if set
+			// if (isset($_SESSION['cdn_settings']['remove_local_files'])) {
+				@unlink($cur_file);
+			// }
 		}
     }
 }
@@ -182,9 +184,11 @@ function upload_existing_file() {
 	}
 
 	// Verify file was successfully uploaded
-	if (verify_successful_upload($file_to_upload) == true) {
-		@unlink($file_to_upload);
-	}
+	// if (isset($_SESSION['cdn_settings']['remove_local_files'])) {
+		if (verify_successful_upload($file_to_upload) == true) {
+			@unlink($file_to_upload);
+		}
+	// }
 
 	// Let the browser know upload was successful
 	echo json_encode(array('response' => 'success', 'file_path', $file_to_upload));
@@ -257,6 +261,11 @@ function load_files_needing_upload() {
 	// Get uploads directory
 	$upload_dir = wp_upload_dir();
 	$dir = $upload_dir['basedir'];
+
+	// If uploads directory is not found, tell the user to create it
+	if (!is_dir($dir)) {
+		return array('response' => 'error', 'message' => 'Directory "'.$dir.'" not found. Please create it.');
+	}
 
 	// Setup directory iterator
 	$files = new RecursiveIteratorIterator(
