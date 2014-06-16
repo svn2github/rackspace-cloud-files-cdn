@@ -25,7 +25,6 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value=''){
 
 		// Create new CDN instance if it doesn't exist
 		$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-		$_SESSION['cdn_container'] = (isset($_SESSION['cdn_container'])) ? $_SESSION['cdn_container'] : $_SESSION['cdn']->container_object();
 
 		// Get upload dir
 		$upload_dir = wp_upload_dir();
@@ -42,13 +41,13 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value=''){
 			try {
 				$_SESSION['cdn']->upload_file($cur_file, $file_name);
 			} catch (Exception $exc) {
-				$wpdb->query("INSERT INTO ".$wpdb->prefix."rscdn_failed_uploads (path_to_file) VALUES ('".$upload_dir['basedir'].'/'.$file_name."')");
+				$wpdb->query("INSERT IGNORE INTO ".$wpdb->prefix."rscdn_failed_uploads (path_to_file) VALUES ('".$upload_dir['basedir'].'/'.$file_name."')");
 				return false;
 				die();
 			}
 
 			// Delete file when successfully uploaded, if set
-			// if (isset($_SESSION['cdn_settings']['remove_local_files'])) {
+			// if (isset($_SESSION['cdn']->api_settings->remove_local_files)) {
 				@unlink($cur_file);
 			// }
 		}
@@ -101,11 +100,10 @@ function verify_filename($filename, $filename_raw = null) {
 
 	// Get CDN information
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
-	if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
-		 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
+		 $_SESSION['cdn']->cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
-		$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+		$_SESSION['cdn']->cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
 
 	// Get file info
@@ -159,7 +157,6 @@ function upload_existing_file() {
 
 	// Create new CDN instance and get settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Get file to upload
 	$file_to_upload = $_REQUEST['file_path'];
@@ -184,7 +181,7 @@ function upload_existing_file() {
 	}
 
 	// Verify file was successfully uploaded
-	// if (isset($_SESSION['cdn_settings']['remove_local_files'])) {
+	// if (isset($_SESSION['cdn']->api_settings->remove_local_files)) {
 		if (verify_successful_upload($file_to_upload) == true) {
 			@unlink($file_to_upload);
 		}
@@ -201,19 +198,19 @@ add_action('wp_ajax_upload_existing_file', 'upload_existing_file');
  *	Set CDN path for image
   */
 function set_cdn_path($attachment) {
+
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Uploads folder data
 	$upload_data = wp_upload_dir();
 
 	// Get public CDN URL
 	try {
-		if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
-			 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+		if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
+			 $_SESSION['cdn']->cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 		} else {
-			$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+			$_SESSION['cdn']->cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 		}
 	} catch (Exception $e) {
 		return $attachment;
@@ -224,7 +221,7 @@ function set_cdn_path($attachment) {
 		if (file_exists(str_replace($upload_data['baseurl'], $upload_data['basedir'], $attachment)) !== false) {
 			return $attachment;
 		} else {
-			return str_replace($upload_data['baseurl'], $_SESSION['cdn_url'], $attachment);
+			return str_replace($upload_data['baseurl'], $_SESSION['cdn']->cdn_url, $attachment);
 		}
 	} else {
 		preg_match_all('/\"(http|https).*?\/wp\-content\/.*?\/\d{4}+\/\d{2}+\/.*?\"/i', $attachment, $attachments);
@@ -233,7 +230,7 @@ function set_cdn_path($attachment) {
 			// If local file does not exist, replace local URL with CDN URL
 			$cur_attachment = trim($cur_attachment, '"');
 			if (file_exists(str_replace($upload_data['baseurl'], $upload_data['basedir'], $cur_attachment)) === false) {
-				$new_attachment = str_replace($upload_data['baseurl'], $_SESSION['cdn_url'], $cur_attachment);
+				$new_attachment = str_replace($upload_data['baseurl'], $_SESSION['cdn']->cdn_url, $cur_attachment);
 				$attachment = str_replace($cur_attachment, $new_attachment, $attachment);
 			}
 		}
@@ -253,7 +250,6 @@ add_filter('wp_get_attachment_url', 'set_cdn_path');
 function load_files_needing_upload() {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
 
 	// Array to store files needing removed
 	$files_needing_upload = array();
@@ -277,8 +273,8 @@ function load_files_needing_upload() {
 	foreach ($files as $fileinfo) {
 		$file_path = pathinfo($fileinfo->getRealPath());
 	    if (!is_dir($fileinfo->getRealPath())) {
-	    	if (isset($_SESSION['cdn_settings']['files_to_ignore'])) {
-	    		$ignore_files = explode(",", $_SESSION['cdn_settings']['files_to_ignore']);
+	    	if (isset($_SESSION['cdn']->api_settings->files_to_ignore)) {
+	    		$ignore_files = explode(",", $_SESSION['cdn']->api_settings->files_to_ignore);
 		    	if (!in_array($file_path['extension'], $ignore_files)) {
 			    	$files_needing_upload['file_'.$i++] = $fileinfo->getRealPath();
 		    	}
@@ -296,18 +292,17 @@ function load_files_needing_upload() {
 function verify_successful_upload( $file_path ) {
 	// Get CDN object and settings
 	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
-	if (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') {
-		 $_SESSION['cdn_url'] = $_SESSION['cdn_settings']['custom_cname'];
+	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
+		 $_SESSION['cdn']->cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
-		$_SESSION['cdn_url'] = (isset($_SESSION['cdn_settings']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+		$_SESSION['cdn']->cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
 
 	// Define variables needed
 	$upload_dir = wp_upload_dir();
 
 	// Set CDN URL
-	$file_url = str_replace($upload_dir['basedir'], $_SESSION['cdn_url'], $file_path);
+	$file_url = str_replace($upload_dir['basedir'], $_SESSION['cdn']->cdn_url, $file_path);
 
 	// Setup CURL request
 	$curl = curl_init( $file_url );
@@ -325,6 +320,45 @@ function verify_successful_upload( $file_path ) {
 	// Close CURL request and return successful upload or not
 	@curl_close($curl);
 	return ($remote_file_size == $local_file_size) ? true : false;
+}
+
+
+/**
+ * Get CDN URL
+ */
+function get_cdn_url($type = 'http') {
+	$type = strtolower($type);
+	if ($_SESSION['cdn']->opencloud_version == '1.9.2') {
+		if ($type == 'ssl' || $type == 'https') {
+			// Return SSL URI
+			return $_SESSION['cdn']->container_object()->getCdn()->getCdnSslUri();
+		} elseif ($type == 'streaming') {
+			// Return Streaming URI
+			return $_SESSION['cdn']->container_object()->getCdn()->getCdnStreamingUri();
+		} elseif ($type == 'ios-streaming') {
+			// Return Streaming URI
+			return $_SESSION['cdn']->container_object()->getCdn()->getIosStreamingUri();
+		} else {
+			// Return HTTP URI
+			return $_SESSION['cdn']->container_object()->getCdn()->getCdnUri();
+		}			
+	} else {
+		if ($type == 'ssl' || $type == 'https') {
+			// Return SSL URI
+			return $_SESSION['cdn']->container_object()->SSLURI();
+		} elseif ($type == 'streaming') {
+			// Return Streaming URI
+			// return $_SESSION['cdn']->container_object()->getCdn()->getCdnStreamingUri();
+			return $_SESSION['cdn']->container_object()->CDNURI();
+		} elseif ($type == 'ios-streaming') {
+			// Return Streaming URI
+			// return $_SESSION['cdn']->container_object()->getCdn()->getIosStreamingUri();
+			return $_SESSION['cdn']->container_object()->CDNURI();
+		} else {
+			// Return HTTP URI
+			return $_SESSION['cdn']->container_object()->CDNURI();
+		}	
+	}
 }
 
 

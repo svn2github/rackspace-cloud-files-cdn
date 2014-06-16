@@ -2,7 +2,7 @@
 Contributors: bstump
 Tags: cdn, rackspace, cloud files
 Requires at least: 3.8.1
-Tested up to: 3.9
+Tested up to: 3.9.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,9 +12,9 @@ Stores all of your WordPress media on Rackspace's Cloud Files CDN. Once the file
 
 Allows any media in your WordPress uploads folder to be uploaded to Rackspace's Cloud Files CDN. ** If you are doing an initial upload, backup your uploads directory first, just in case. I’ve not had any issues, but wanted to include this disclaimer.
 
-= Version 0.0.7 =
+= Version 1.0 =
 
-General changes and bug fixes. Added option to keep files locally when synced to CDN.
+Added latest version of php-opencloud (1.9.2). Changes to speed up plugin. Content Type now reported.
 
 == Installation ==
 
@@ -45,9 +45,16 @@ General changes and bug fixes. Added option to keep files locally when synced to
 * Removed code that was no longer needed
 * Fixed issue with adding media to old pages breaking URLs
 
+= 1.0 =
+* General bug fixes
+* Other changes to improve and speed up functionality, this version is much quicker
+* Added latest version of php-opencloud (if PHP 5.3.3 or greater)
+* Added content types to old version of php-opencloud, new version supports it as well
+
 == Upgrade Notice ==
 
-= 0.0.7 =
+= 1.0 =
 * General bug fixes
-* Removed code that was no longer needed
-* Fixed issue with adding media to old pages breaking URLs
+* Other changes to improve and speed up functionality, this version is much quicker
+* Added latest version of php-opencloud (if PHP 5.3.3 or greater)
+* Added content types to old version of php-opencloud, new version supports it as well

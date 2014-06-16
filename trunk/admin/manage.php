@@ -5,24 +5,60 @@
 
 	// Define session data
 	defined('RS_CDN_PATH') or die();
-	$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
-	$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings;
+
+	// Set error to false
+	$settings_error = false;
 
 	// Save CDN settings
 	if (isset($_POST['save_cdn_settings'])) {
-		save_cdn_settings();
+		try {
+			save_cdn_settings();
+		} catch (Exception $exc) {
+			$settings_error = true;
+		}
 	}
-	$settings_error = false;
 
-	// Get files and counts
-	$local_files = load_files_needing_upload();
-	$local_count = count($local_files);
-
-	// Check if connection has been made by grabbing container
+	// Try to create a CDN instance
 	try {
-		$container = $_SESSION['cdn']->container_object();
-	} catch (Exception $e) {
+		// Create new instance
+		$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
+
+		// Get files and counts
+		$local_files = load_files_needing_upload();
+		$local_count = count($local_files);
+
+		// Check if connection has been made by grabbing container
+		if (is_null($_SESSION['cdn']->oc_container)) {
+			$settings_error = true;
+		}
+	} catch (Exception $exc) {
+		$_SESSION['cdn'] = null;
 		$settings_error = true;
+	}
+
+	// Assign API settings to variables
+	if (!isset($_SESSION['cdn']->api_settings)) {
+		// Get settings, if they exist
+		if ( get_option( RS_CDN_OPTIONS ) == false ) {
+			// Add default CDN settings
+			$cdn_settings = new stdClass();
+			$cdn_settings->username = 'Username';
+			$cdn_settings->apiKey = 'API Key';
+			$cdn_settings->use_ssl = false;
+			$cdn_settings->container = 'default';
+			$cdn_settings->cdn_url = null;
+			$cdn_settings->files_to_ignore = null;
+			$cdn_settings->verified = false;
+			$cdn_settings->custom_cname = null;
+			$cdn_settings->region = 'ORD';
+			$cdn_settings->url = 'https://identity.api.rackspacecloud.com/v2.0/';
+		} else {
+			echo 'getting...';
+			$cdn_settings = (object) get_option( RS_CDN_OPTIONS );
+			$cdn_settings->url = (isset($cdn_settings->url)) ? $cdn_settings->url : 'https://identity.api.rackspacecloud.com/v2.0/';
+		}
+	} else {
+		$cdn_settings = (object) $_SESSION['cdn']->api_settings;
 	}
 ?>
 <script type="text/javascript">
@@ -99,7 +135,7 @@
 						<label for="rs_cdn[use_ssl]">Remove Local Files</label>
 					</th>
 					<td>
-						<input type="checkbox" name="rs_cdn[remove_local_files]" value="true" <?php echo (isset($_SESSION['cdn_settings']['remove_local_files']) && $_SESSION['cdn_settings']['remove_local_files'] == true) ? 'checked': '' ?>> 
+						<input type="checkbox" name="rs_cdn[remove_local_files]" value="true" <?php echo (isset($cdn_settings->remove_local_files) && $cdn_settings->remove_local_files == true) ? 'checked': '' ?>> 
 						<span class="description">Remove files from local server when uploaded to CDN?</span>
 					</td>
 				</tr> -->
@@ -109,7 +145,7 @@
 					</th>
 					<td>
 						<div class="description" style="padding-bottom:10px;font-style:italic;">Files extensions to ignore when uploading (Comma separated, no spaces).</div>
-						<textarea name="rs_cdn[files_to_ignore]" style="width:350px;height:150px;"><?php echo (isset($_SESSION['cdn_settings']['files_to_ignore'])) ? $_SESSION['cdn_settings']['files_to_ignore'] : ''; ?></textarea>
+						<textarea name="rs_cdn[files_to_ignore]" style="width:350px;height:150px;"><?php echo (isset($cdn_settings->files_to_ignore)) ? $cdn_settings->files_to_ignore : ''; ?></textarea>
 					</td>
 				</tr>
 			</tbody>
@@ -123,7 +159,7 @@
 						<label for="rs_cdn[username]">Username</label>
 					</th>
 					<td>
-						<input name="rs_cdn[username]" type="text" value="<?php echo $_SESSION['cdn_settings']['username'];?>" class="regular-text" required="required" />
+						<input name="rs_cdn[username]" type="text" value="<?php echo $cdn_settings->username; ?>" class="regular-text" required="required" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -131,7 +167,7 @@
 						<label for="rs_cdn[apiKey]">API Key</label>
 					</th>
 					<td>
-						<input name="rs_cdn[apiKey]" type="text" value="<?php echo $_SESSION['cdn_settings']['apiKey'];?>" class="regular-text" required="required" />
+						<input name="rs_cdn[apiKey]" type="text" value="<?php echo $cdn_settings->apiKey;?>" class="regular-text" required="required" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -139,7 +175,7 @@
 						<label for="rs_cdn[container]">Container</label>
 					</th>
 					<td>
-						<input name="rs_cdn[container]" type="text" value="<?php echo $_SESSION['cdn_settings']['container'];?>" class="regular-text" required="required" />
+						<input name="rs_cdn[container]" type="text" value="<?php echo $cdn_settings->container;?>" class="regular-text" required="required" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -147,7 +183,7 @@
 						<label for="rs_cdn[custom_cname]">Custom CNAME</label>
 					</th>
 					<td>
-						<input name="rs_cdn[custom_cname]" id="rs_cdn_custom_cname" type="text" value="<?php echo $_SESSION['cdn_settings']['custom_cname'];?>" class="regular-text" />
+						<input name="rs_cdn[custom_cname]" id="rs_cdn_custom_cname" type="text" value="<?php echo (isset($cdn_settings->custom_cname)) ? $cdn_settings->custom_cname : '';?>" class="regular-text" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -155,7 +191,7 @@
 						<label for="rs_cdn[use_ssl]">File Paths</label>
 					</th>
 					<td>
-						<input type="checkbox" name="rs_cdn[use_ssl]" id="rs_cdn_use_ssl" value="true" <?php echo (isset($_SESSION['cdn_settings']['use_ssl']) && $_SESSION['cdn_settings']['use_ssl'] == true) ? 'checked': '' ?><?php echo (isset($_SESSION['cdn_settings']['custom_cname']) && trim($_SESSION['cdn_settings']['custom_cname']) != '') ? ' disabled' : '' ?>> 
+						<input type="checkbox" name="rs_cdn[use_ssl]" id="rs_cdn_use_ssl" value="true" <?php echo (isset($cdn_settings->use_ssl) && $cdn_settings->use_ssl == true) ? 'checked': '' ?><?php echo (isset($cdn_settings->custom_cname) && trim($cdn_settings->custom_cname) != '') ? ' disabled' : '' ?>> 
 						<span class="description">Use SSL (https) file paths?</span>
 					</td>
 				</tr>
@@ -168,7 +204,7 @@
 							<?php
 								$cdn_regions = array("IAD"=>"Northern Virginia", "ORD" => "Chicago", "DFW" => "Dallas", "LON" => "London", "HKG" => "Hong Kong", "SYD" => "Sydney");
 								foreach ($cdn_regions as $code => $region) {
-									$selected = ($_SESSION['cdn_settings']['region'] ==  $code) ? ' selected' : '';
+									$selected = ($cdn_settings->region ==  $code) ? ' selected' : '';
 									echo '<option value="'.$code.'"'.$selected.'>'.$region.' ('.$code.')</option>';
 								}
 							?>
@@ -181,7 +217,7 @@
 						<label for="rs_cdn[url]">API Version URL</label>
 					</th>
 					<td>
-						<input name="rs_cdn[url]" type="text" value="<?php echo $_SESSION['cdn_settings']['url'];?>" class="regular-text" required="required" readonly="readonly" />
+						<input name="rs_cdn[url]" type="text" value="<?php echo $cdn_settings->url;?>" class="regular-text" required="required" readonly="readonly" />
 					</td>
 				</tr>
 				<tr valign="top">

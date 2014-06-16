@@ -33,25 +33,33 @@ function save_cdn_settings() {
 
 		// Save settings in database
 		$cdn_settings = $_POST['rs_cdn'];
-		update_option(RS_CDN_OPTIONS, $cdn_settings);
 
 		// Turn off SSL if custom CNAME is being used
 		if (isset($_POST['rs_cdn']['custom_cname']) && trim($_POST['rs_cdn']['custom_cname']) != '') {
-			$_SESSION['cdn_url'] = $_POST['rs_cdn']['custom_cname'];
+			$_SESSION['cdn']->cdn_url = $_POST['rs_cdn']['custom_cname'];
 		} else {
+			// Set API settings to the new settings
+			update_option(RS_CDN_OPTIONS, (object) $cdn_settings);
+
+			// Create new CDN instance
 			try {
-				// Try to create new CDN url
+				// Try to create new CDN instance
+				unset($_SESSION['cdn']);
 				$_SESSION['cdn'] = new RS_CDN();
 
-				// Try to set CDN URL for session
-				$_SESSION['cdn_url'] = (isset($_POST['rs_cdn']['use_ssl'])) ? $_SESSION['cdn']->container_object()->SSLURI() : $_SESSION['cdn']->container_object()->CDNURI();
+				// Set API settings for CDN instance
+				$_SESSION['cdn']->api_settings = (object) $cdn_settings;
+
+				// Assign URL
+				if ($_SESSION['cdn']->container_object()) {
+					$_SESSION['cdn']->cdn_url = (isset($_POST['rs_cdn']['use_ssl'])) ? get_cdn_url('ssl') : get_cdn_url();
+				} else {
+					$_SESSION['cdn']->cdn_url = null;
+				}
 			} catch (Exception $exc) {
 				// Exception
 			}
 		}
-
-		// Set API settings to the new settings
-		$_SESSION['cdn_settings'] = $_SESSION['cdn']->api_settings = $cdn_settings;
 	}
 }
 

@@ -185,7 +185,7 @@ class DataObject extends ObjectStore
 		// attempt to guess based on the file extension.
 		if (isset($this->content_type))
         	$headers['Content-Type'] = $this->content_type;
-        $headers['Content-Length'] = $this->content_length;
+			$headers['Content-Length'] = $this->content_length;
 
         // copy any extra headers
         if (!empty($this->extra_headers)) {
