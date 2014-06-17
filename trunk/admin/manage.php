@@ -53,7 +53,6 @@
 			$cdn_settings->region = 'ORD';
 			$cdn_settings->url = 'https://identity.api.rackspacecloud.com/v2.0/';
 		} else {
-			echo 'getting...';
 			$cdn_settings = (object) get_option( RS_CDN_OPTIONS );
 			$cdn_settings->url = (isset($cdn_settings->url)) ? $cdn_settings->url : 'https://identity.api.rackspacecloud.com/v2.0/';
 		}
