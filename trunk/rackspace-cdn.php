@@ -82,6 +82,7 @@ function rscdn_uninstall() {
 	@delete_site_option( RS_CDN_OPTIONS );
 
 	// Delete failed uploads table
+	global $wpdb;
 	$wpdb->query( "DROP TABLE IF EXISTS ".$wpdb->prefix."rscdn_failed_uploads" );
 }
 register_uninstall_hook( __FILE__, 'rscdn_uninstall' );
