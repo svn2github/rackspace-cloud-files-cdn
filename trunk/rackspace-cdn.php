@@ -72,6 +72,22 @@ register_activation_hook( __FILE__, 'rscdn_install' );
 
 
 /**
+ *  Run when plugin is uninstalled
+ */
+function rscdn_uninstall() {
+	// Delete single site option
+	@delete_option( RS_CDN_OPTIONS );
+
+	// Delete multisite option
+	@delete_site_option( RS_CDN_OPTIONS );
+
+	// Delete failed uploads table
+	$wpdb->query( "DROP TABLE IF EXISTS ".$wpdb->prefix."rscdn_failed_uploads" );
+}
+register_uninstall_hook( __FILE__, 'rscdn_uninstall' );
+
+
+/**
  *  Register and enqueue admin JavaScript
  */
 function rs_cdn_admin_js() {

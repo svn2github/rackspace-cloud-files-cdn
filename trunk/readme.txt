@@ -12,9 +12,9 @@ Stores all of your WordPress media on Rackspace's Cloud Files CDN. Once the file
 
 Allows any media in your WordPress uploads folder to be uploaded to Rackspace's Cloud Files CDN. ** If you are doing an initial upload, backup your uploads directory first, just in case. I’ve not had any issues, but wanted to include this disclaimer.
 
-= Version 1.0 =
+= Version 1.0.1 =
 
-Added latest version of php-opencloud (1.9.2). Changes to speed up plugin. Content Type now reported.
+Added uninstall hook to remove options when uninstalled.
 
 == Installation ==
 
@@ -51,10 +51,10 @@ Added latest version of php-opencloud (1.9.2). Changes to speed up plugin. Conte
 * Added latest version of php-opencloud (if PHP 5.3.3 or greater)
 * Added content types to old version of php-opencloud, new version supports it as well
 
+= 1.0.1 =
+* Added uninstall hook to remove options when uninstalled.
+
 == Upgrade Notice ==
 
-= 1.0 =
-* General bug fixes
-* Other changes to improve and speed up functionality, this version is much quicker
-* Added latest version of php-opencloud (if PHP 5.3.3 or greater)
-* Added content types to old version of php-opencloud, new version supports it as well
+= 1.0.1 =
+* Added uninstall hook to remove options when uninstalled.
