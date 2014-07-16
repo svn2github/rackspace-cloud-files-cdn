@@ -7,7 +7,9 @@ global $wpdb;
 class RS_CDN {
 
 
+	public $oc_client;
 	public $oc_service;
+	public $oc_conn_object;
 	public $oc_container;
 	public $cdn_url;
 	public $opencloud_version;
@@ -18,12 +20,13 @@ class RS_CDN {
 	/**
 	 *  Create new Openstack Object
 	 */
-	function __construct() {
+	function __construct($custom_settings = null, $oc_version = null) {
 		// Set opencloud version to use
 		$this->opencloud_version = (version_compare(phpversion(), '5.3.3') >= 0) ? '1.9.2' : '1.5.10';
+		$this->opencloud_version = (!is_null($oc_version)) ? $oc_version : $this->opencloud_version;
 
 		// Get settings, if they exist
-		$custom_settings = (object) get_option( RS_CDN_OPTIONS );
+		(object) $custom_settings = (!is_null($custom_settings)) ? $custom_settings : get_option( RS_CDN_OPTIONS );
 
 		// Set settings
 		$settings = new stdClass();
@@ -33,6 +36,7 @@ class RS_CDN {
 		$settings->container = (isset($custom_settings->container)) ? $custom_settings->container : 'default';
 		$settings->cdn_url = null;
 		$settings->files_to_ignore = null;
+		$settings->remove_local_files = (isset($custom_settings->remove_local_files)) ? $custom_settings->remove_local_files : false;
 		$settings->verified = false;
 		$settings->custom_cname = null;
 		$settings->region = (isset($custom_settings->region)) ? $custom_settings->region : 'ORD';
@@ -43,18 +47,30 @@ class RS_CDN {
 
 		// Return client OR set settings
 		if ($this->opencloud_version == '1.9.2') {
-			// Set new Cloud Files client
-			$cloud_files_client = new \OpenCloud\Rackspace(
-				$settings->url,
-				(array) $settings
-			);
-
 			// Set Rackspace CDN settings
-			$this->oc_service = $cloud_files_client->objectStoreService('cloudFiles', $settings->region);
-
-			// Set container object
-			$this->oc_container = $this->container_object();
+			$this->oc_client = $this->opencloud_client();
+			$this->oc_service = $this->oc_client->objectStoreService('cloudFiles', $settings->region);
 		}
+
+		// Set container object
+		$this->oc_container = $this->container_object();
+	}
+
+
+	/**
+	 * Cloud files client
+	 */
+	public function opencloud_client() {
+		// Set new Cloud Files client
+		$cloud_files_client = new \OpenCloud\Rackspace(
+			$this->api_settings->url,
+			(array) $this->api_settings
+		);
+
+		// Set Rackspace CDN settings
+		$this->oc_client = $cloud_files_client;
+		
+		return $cloud_files_client;
 	}
 
 
@@ -66,6 +82,11 @@ class RS_CDN {
 			// Return service
 			return $this->oc_service;
 		} else {
+			// If connection object is already set, return it
+			if (isset($this->oc_service)) {
+				return $this->oc_service;
+			}
+
 			// Get settings and connection object
 			$api_settings = $this->api_settings;
 			$connection = new \OpenCloud\Rackspace(
@@ -85,7 +106,7 @@ class RS_CDN {
 
 
 	/**
-	*  Openstack CDN Container Object
+	*  Retrieve Openstack CDN Container Object
 	*/
 	public function container_object() {
 		if ($this->opencloud_version == '1.9.2') {
@@ -100,9 +121,19 @@ class RS_CDN {
 			return $this->oc_container;
 		} else {
 			$api_settings = $this->api_settings;
+			if (isset($this->oc_container)) {
+				try {
+					$this->connection_object()->Container($api_settings->container);
+					return $this->oc_container;
+				} catch (Exception $exc) {
+					$_SESSION['cdn'] = new RS_CDN();
+					return $_SESSION['cdn']->oc_container;
+				}
+			}
 			$cdn = $this->connection_object();
 			$container = $cdn->Container($api_settings->container);
-			return $container;
+			$this->oc_container = $container;
+			return $this->oc_container;
 		}
 	}
 
@@ -139,7 +170,7 @@ class RS_CDN {
 			return true;
 		} else {
 			// Get ready to upload file to CDN
-			$container = $this->oc_container;
+			$container = $this->container_object();
 			$file = $this->file_object($container, $file_path, $file_name);
 
 			// Upload object
@@ -148,7 +179,8 @@ class RS_CDN {
 					return true;
 				}
 			} else {
-				if ($content_type = get_content_type( $file_path ) !== false) {
+				$content_type = get_content_type( $file_path );
+				if ($content_type !== false) {
 					if ($file->Create(array('content_type' => $content_type))) {
 						return true;
 					}
@@ -169,7 +201,7 @@ class RS_CDN {
 			unlink($file_path);
 		}
 
-		// Remove attachment from db
+		// Upload failed, remove attachment from db
 		if (isset($post_id)) {
 			$wpdb->query("DELETE FROM $wpdb->posts WHERE ID='$post_id' AND post_type='attachment'");
 			$wpdb->query("DELETE FROM $wpdb->postmeta WHERE post_id='$post_id'");
@@ -179,51 +211,38 @@ class RS_CDN {
 
 
 	/**
-	* Get mime type of file
-	*/
-	public function get_content_type($file) {
-		if (function_exists("finfo_file")) {
-			$finfo = finfo_open( FILEINFO_MIME_TYPE );
-			$mime = finfo_file( $finfo , $file );
-			finfo_close( $finfo );
-			return $mime;
-		} elseif ( function_exists( "mime_content_type" ) ) {
-			return mime_content_type($file);
-		} elseif ( !stristr( ini_get( "disable_functions" ), "shell_exec" ) ) {
-			$file = escapeshellarg( $file );
-			$mime = shell_exec( "file -bi ".$file );
-			return $mime;
-		} else {
-			return false;
-		}
-	}
-
-
-	/**
 	* Removes given file attachment(s) from CDN
 	*/
 	public function delete_files( $files ) {
 		// Get container object
-		$container = $this->oc_container;
+		$container = $this->container_object();
 
 		// Delete object
 		if ($this->opencloud_version == '1.9.2') {
 			foreach ($files as $cur_file) {
-				$file = $container->getObject($cur_file);
 				try {
-					$file->Delete();
-				} catch (Exception $e) {
+					$file = $container->getObject($cur_file);
+					try {
+						$file->Delete();
+					} catch (Exception $exc) {
+						return $exc;
+					}
+				} catch (Exception $exc) {
 					return $e;
 				}
 			}
 		} else {
 			foreach ($files as $cur_file) {
-				$file = $container->DataObject();
-				$file->name = $cur_file;
 				try {
-					$file->Delete();
-				} catch (Exception $e) {
-					return $e;
+					$file = $container->DataObject();
+					$file->name = $cur_file;
+					try {
+						@$file->Delete();
+					} catch (Exception $exc) {
+						return $exc;
+					}
+				} catch (Exception $exc) {
+					return $exc;
 				}
 			}
 			return true;

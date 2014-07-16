@@ -8,11 +8,17 @@
 
 	// Set error to false
 	$settings_error = false;
+	$show_errors = array();
 
 	// Save CDN settings
 	if (isset($_POST['save_cdn_settings'])) {
 		try {
-			save_cdn_settings();
+			$save_settings = save_cdn_settings();
+
+			// See if save was successful
+			if (isset($save_settings['response']) && $save_settings['response'] == 'error') {
+				$show_errors[] = $save_settings['message'];
+			}
 		} catch (Exception $exc) {
 			$settings_error = true;
 		}
@@ -23,22 +29,20 @@
 		// Create new instance
 		$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 
-		// Get files and counts
-		$local_files = load_files_needing_upload();
-		$local_count = count($local_files);
-
 		// Check if connection has been made by grabbing container
-		if (is_null($_SESSION['cdn']->oc_container)) {
-			$settings_error = true;
+		if (is_null($_SESSION['cdn']->container_object())) {
+			$show_errors[] = 'Container does not exist.';
 		}
 	} catch (Exception $exc) {
-		$_SESSION['cdn'] = null;
-		$settings_error = true;
+		if (stripos($exc, 'Unauthorized') !== false) {
+			$show_errors[] = 'Unable to connect to the CDN, please check the credentials below.';
+		} else {
+			$show_errors[] = $exc;
+		}
 	}
 
-	// Assign API settings to variables
+	// Assign API settings
 	if (!isset($_SESSION['cdn']->api_settings)) {
-		// Get settings, if they exist
 		if ( get_option( RS_CDN_OPTIONS ) == false ) {
 			// Add default CDN settings
 			$cdn_settings = new stdClass();
@@ -46,8 +50,8 @@
 			$cdn_settings->apiKey = 'API Key';
 			$cdn_settings->use_ssl = false;
 			$cdn_settings->container = 'default';
-			$cdn_settings->cdn_url = null;
 			$cdn_settings->files_to_ignore = null;
+			$cdn_settings->remove_local_files = false;
 			$cdn_settings->verified = false;
 			$cdn_settings->custom_cname = null;
 			$cdn_settings->region = 'ORD';
@@ -58,6 +62,18 @@
 		}
 	} else {
 		$cdn_settings = (object) $_SESSION['cdn']->api_settings;
+	}
+
+	// Get files that need synced
+	if (isset($cdn_settings->remove_local_files) && $cdn_settings->remove_local_files == true && count(get_local_files() > 0)) {
+		$files_to_sync = array('upload' => array(), 'download' => array());
+	} else {
+		try {
+			$files_to_sync = get_files_to_sync();
+		} catch (Exception $exc) {
+			$files_to_sync = array('upload' => array(), 'download' => array());
+			$settings_error = true;
+		}
 	}
 ?>
 <script type="text/javascript">
@@ -71,26 +87,36 @@
 		<div id="error_notifications">
 		<?php
 			// Show error if error
-			if ((isset($local_files['response']) && $local_files['response'] == 'error') || $settings_error == true) {
-				$settings_error = true;
+			if (count($show_errors) > 0) {
+				foreach ($show_errors as $cur_error) {
 		?>
 			<div id="setting-error-settings_updated" class="error settings-error"> 
-				<p><strong>Ruh-Roh!</strong><br /><?php echo isset($local_files['message']) ? $local_files['message'] : 'Your settings are busted. Please verify and make sure you have the correct credentials.' ?></p>
+				<p><strong>Ruh-Roh!</strong><br /><?php echo isset($cur_error) ? $cur_error : 'Your settings are busted. Please verify and make sure you have the correct credentials.' ?></p>
 			</div>
 		<?php
+				}
 			} else {
-				// Show file upload notification
-				$show_file_count = (count($local_files) == 1) ? 'is ('.$local_count.') file' : 'are ('.$local_count.') files';
-				$show_needs = (count($local_files) == 1) ? 'needs' : 'need';
+				// Show file sync notification
+				if (isset($cdn_settings->remove_local_files) && $cdn_settings->remove_local_files == true) {
+					// Remove local files after upload, do not sync
+					$num_files_to_sync = count($files_to_sync['upload']);
+					$show_file_count = ($num_files_to_sync == 1) ? 'is ('.$num_files_to_sync.') file' : 'are ('.$num_files_to_sync.') files';
+					$show_needs = ($num_files_to_sync == 1) ? 'needs' : 'need';
+				} else {
+					// Sync files between CDN and local server (DO NOT REMOVE AFTER UPLOAD)
+					$num_files_to_sync = count($files_to_sync['upload'])+count($files_to_sync['download']);
+					$show_file_count = ($num_files_to_sync == 1) ? 'is ('.$num_files_to_sync.') file' : 'are ('.$num_files_to_sync.') files';
+					$show_needs = ($num_files_to_sync == 1) ? 'needs' : 'need';
+				}
 		?>
-				<div id="setting-error-settings_updated" class="updated settings-error"<?php echo ($local_count == 0) ? ' style="display:none;"' : '' ?>> 
-				<p><strong>Hey! You there!</strong><br />There <?php echo $show_file_count ?> in your local WordPress uploads directory that <?php echo $show_needs ?> synchronized to the CDN. Click the <em>Synchronize</em> button to upload them.</p>
+				<div id="setting-error-settings_updated" class="updated settings-error"<?php echo ($num_files_to_sync == 0) ? ' style="display:none;"' : '' ?>> 
+				<p><strong>Hey! You there!</strong><br />There <?php echo $show_file_count ?> that <?php echo $show_needs ?> synchronized with the CDN. Click the <em>Synchronize</em> button below to sync your files.</p>
 			</div>
 		<?php
 			}
 		?>
 		</div>
-		<div id="upload_files_to_cdn"<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>
+		<div id="upload_files_to_cdn"<?php echo ($settings_error == true || count($show_errors) > 0) ? ' style="display:none;"' : '' ?>>
 			<h3>Moving Files To CDN</h3>
 			<table class="form-table">
 				<tbody>
@@ -99,8 +125,8 @@
 							<label>File Sync and Verification</label>
 						</th>
 						<td>
-							<p>
-								<?php if ($local_count > 0) : ?>
+							<p id="all_files_in_sync">
+								<?php if ($num_files_to_sync > 0) : ?>
 								<a href="#" class="button" id="synchronize" data-blogurl="<?php echo site_url();?>">Synchronize</a>
 								<?php else : ?>
 								<em>All Files 'N Sync</em>
@@ -113,23 +139,10 @@
 				</tbody>
 			</table>
 		</div>
-		<h3<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>Manage Files</h3>
-		<?php
-			/* $files_to_upload = array();
-			$upload_dir = wp_upload_dir();
-			$files = $_SESSION['cdn']->container_object()->objectList();
-			while ($file = $files->next()) {
-			    // $upload_dir['basedir'].'/'
-			    if (!in_array('needle', $files_to_upload)) {
-			    	$files_to_upload[] = array('file_name' => $file->name, 'file_size' => $file->bytes);
-			    }
-			}
-			echo '<pre>'.print_r($local_files, true).'</pre>';
-			echo '<STRONG>********** '.count($files_to_upload).' FILES **********</STRONG>'; */
-		?>
-		<table class="form-table"<?php echo ($settings_error == true) ? ' style="display:none;"' : '' ?>>
+		<h3<?php echo ($settings_error == true || count($show_errors) > 0) ? ' style="display:none;"' : '' ?>>Manage Files</h3>
+		<table class="form-table"<?php echo ($settings_error == true || count($show_errors) > 0) ? ' style="display:none;"' : '' ?>>
 			<tbody>
-				<!-- <tr valign="top">
+				<tr valign="top">
 					<th scope="row">
 						<label for="rs_cdn[use_ssl]">Remove Local Files</label>
 					</th>
@@ -137,7 +150,18 @@
 						<input type="checkbox" name="rs_cdn[remove_local_files]" value="true" <?php echo (isset($cdn_settings->remove_local_files) && $cdn_settings->remove_local_files == true) ? 'checked': '' ?>> 
 						<span class="description">Remove files from local server when uploaded to CDN?</span>
 					</td>
-				</tr> -->
+				</tr>
+				<?php if (isset($cdn_settings->remove_local_files)) : ?>
+				<tr id="remove_local_files_container" valign="top"<?php echo (count(get_local_files()) == 0) ? ' style="display:none;"' : ((count($files_to_sync['upload']) > 0) ? ' style="display:none;"' : '') ?>>
+					<th scope="row"></th>
+					<td>
+						<a href="#" class="button" id="remove_local_files" style="color:#ff0000;vertical-align:middle;" data-blogurl="<?php echo site_url();?>">Remove Local Files</a>
+						<span class="description" style="color:#ff0000;vertical-align:middle;"><strong>WARNING:</strong> Only click this button once you have confirmed all files have been synchronized to the CDN.</span>
+						<br />
+						<span id="file_delete" class="description"></span>
+					</td>
+				</tr>
+				<?php endif; ?>
 				<tr valign="top">
 					<th scope="row">
 						<label>Files To Ignore</label>
@@ -159,6 +183,7 @@
 					</th>
 					<td>
 						<input name="rs_cdn[username]" type="text" value="<?php echo $cdn_settings->username; ?>" class="regular-text" required="required" />
+						<input name="rs_cdn_old[username]" type="hidden" value="<?php echo $cdn_settings->username; ?>" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -167,6 +192,7 @@
 					</th>
 					<td>
 						<input name="rs_cdn[apiKey]" type="text" value="<?php echo $cdn_settings->apiKey;?>" class="regular-text" required="required" />
+						<input name="rs_cdn_old[apiKey]" type="hidden" value="<?php echo $cdn_settings->apiKey; ?>" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -175,6 +201,7 @@
 					</th>
 					<td>
 						<input name="rs_cdn[container]" type="text" value="<?php echo $cdn_settings->container;?>" class="regular-text" required="required" />
+						<input name="rs_cdn_old[container]" type="hidden" value="<?php echo $cdn_settings->container; ?>" />
 					</td>
 				</tr>
 				<tr valign="top">
@@ -208,6 +235,7 @@
 								}
 							?>
 						</select>
+						<input name="rs_cdn_old[region]" type="hidden" value="<?php echo $cdn_settings->region; ?>" />
 						<br /><span class="description">Rackspace filestore region.</span>
 					</td>
 				</tr>

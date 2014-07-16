@@ -6,22 +6,21 @@ Tested up to: 3.9.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Stores all of your WordPress media on Rackspace's Cloud Files CDN. Once the file is uploaded, it is deleted from the local server.
+Syncs and serves all of your WordPress media via Rackspace's Cloud Files CDN.
 
 == Description ==
 
-Allows any media in your WordPress uploads folder to be uploaded to Rackspace's Cloud Files CDN. ** If you are doing an initial upload, backup your uploads directory first, just in case. I’ve not had any issues, but wanted to include this disclaimer.
+Syncs and serves all of your WordPress media via Rackspace's Cloud Files CDN. You can sync the media and keep it on your local server (using disk space on both your local server and the CDN) or you can opt to remove media from your local server once it has been synced to the CDN (saving you disk space at your hosting provider, reducing your costs).
 
-= Version 1.0.1 =
+= Version 1.1.0 =
 
-Added uninstall hook to remove options when uninstalled.
+Added sync functionality.
 
 == Installation ==
 
 1. Upload plugin to `/wp-content/plugins/`
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Backup uploads directory (optional, if doing initial upload)
-4. Use it! Save money!
+3. Use it! Save money!
 
 == Screenshots ==
 
@@ -54,7 +53,12 @@ Added uninstall hook to remove options when uninstalled.
 = 1.0.1 =
 * Added uninstall hook to remove options when uninstalled.
 
+= 1.1.0 =
+* General bug fixes
+* Added much anticipated sync feature
+
 == Upgrade Notice ==
 
-= 1.0.1 =
-* Added uninstall hook to remove options when uninstalled.
+= 1.1.0 =
+* General bug fixes
+* Added much anticipated sync feature
