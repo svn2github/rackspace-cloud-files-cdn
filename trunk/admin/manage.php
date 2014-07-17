@@ -30,7 +30,7 @@
 		$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
 
 		// Check if connection has been made by grabbing container
-		if (is_null($_SESSION['cdn']->container_object())) {
+		if (!isset($_SESSION['cdn']) || is_null($_SESSION['cdn']) || is_null($_SESSION['cdn']->container_object())) {
 			$show_errors[] = 'Container does not exist.';
 		}
 	} catch (Exception $exc) {
