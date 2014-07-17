@@ -166,7 +166,7 @@ class RS_CDN {
 
 		// Check if file exists
 		$check_file_name = (isset($file_name)) ? $file_name : basename($file_path);
-		if (@fopen(set_cdn_path($check_file_name), 'r') !== false) {
+		if (verify_exists($check_file_name)) {
 			return true;
 		} else {
 			// Get ready to upload file to CDN
@@ -206,6 +206,7 @@ class RS_CDN {
 			$wpdb->query("DELETE FROM $wpdb->posts WHERE ID='$post_id' AND post_type='attachment'");
 			$wpdb->query("DELETE FROM $wpdb->postmeta WHERE post_id='$post_id'");
 		}
+
 		return false;
 	}
 

@@ -496,14 +496,33 @@ function verify_exists( $file_path ) {
 	$upload_dir = wp_upload_dir();
 
 	// Set CDN URL
-	$file_url = str_replace($upload_dir['basedir'], $cdn_url, $file_path);
-
-	// Setup CURL request
-	if (strstr(current(get_headers($file_url)), "200")) {
-		return true;
+	if (stripos($file_path, $cdn_url) === false) {
+		$file_url = $cdn_url.'/'.$file_path;
 	} else {
-		return false;
+		$file_url = str_replace($upload_dir['basedir'], $cdn_url, $file_path);
 	}
+
+	// Verify file exists, use curl if "allow_url_fopen" is not allowed
+	if(ini_get('allow_url_fopen')) {
+		if (strstr(current(get_headers($file_url)), "200")) {
+			return true;
+		} else {
+			return false;
+		}
+	} else {
+		$ch = curl_init($file_url);
+		curl_setopt($ch, CURLOPT_NOBODY, true);
+		curl_exec($ch);
+		curl_close($ch);
+		$return_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		if ($return_code == 200) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 
