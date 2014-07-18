@@ -237,7 +237,7 @@ function get_cdn_objects() {
 	$cdn_objects = array();
 
 	// Get objects
-	if ($_SESSION['cdn']->opencloud_version == '1.9.2') {
+	if ($_SESSION['cdn']->opencloud_version == '1.10.0') {
 		$oc_service = $_SESSION['cdn']->opencloud_client()->objectStoreService('cloudFiles', $_SESSION['cdn']->api_settings->region);
 		$objects = $oc_service->getContainer($_SESSION['cdn']->api_settings->container)->objectList();
 		foreach ($objects as $object) {
@@ -531,7 +531,7 @@ function verify_exists( $file_path ) {
  */
 function get_cdn_url($type = 'http') {
 	$type = strtolower($type);
-	if ($_SESSION['cdn']->opencloud_version == '1.9.2') {
+	if ($_SESSION['cdn']->opencloud_version == '1.10.0') {
 		if ($type == 'ssl' || $type == 'https') {
 			// Return SSL URI
 			return $_SESSION['cdn']->container_object()->getCdn()->getCdnSslUri();

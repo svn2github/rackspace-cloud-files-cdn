@@ -22,7 +22,7 @@ class RS_CDN {
 	 */
 	function __construct($custom_settings = null, $oc_version = null) {
 		// Set opencloud version to use
-		$this->opencloud_version = (version_compare(phpversion(), '5.3.3') >= 0) ? '1.9.2' : '1.5.10';
+		$this->opencloud_version = (version_compare(phpversion(), '5.3.3') >= 0) ? '1.10.0' : '1.5.10';
 		$this->opencloud_version = (!is_null($oc_version)) ? $oc_version : $this->opencloud_version;
 
 		// Get settings, if they exist
@@ -46,7 +46,7 @@ class RS_CDN {
 		$this->api_settings = (object) $settings;
 
 		// Return client OR set settings
-		if ($this->opencloud_version == '1.9.2') {
+			if ($this->opencloud_version == '1.10.0') {
 			// Set Rackspace CDN settings
 			$this->oc_client = $this->opencloud_client();
 			$this->oc_service = $this->oc_client->objectStoreService('cloudFiles', $settings->region);
@@ -78,7 +78,7 @@ class RS_CDN {
 	 *  Openstack Connection Object
 	 */
 	function connection_object(){
-		if ($this->opencloud_version == '1.9.2') {
+		if ($this->opencloud_version == '1.10.0') {
 			// Return service
 			return $this->oc_service;
 		} else {
@@ -109,7 +109,7 @@ class RS_CDN {
 	*  Retrieve Openstack CDN Container Object
 	*/
 	public function container_object() {
-		if ($this->opencloud_version == '1.9.2') {
+		if ($this->opencloud_version == '1.10.0') {
 			$api_settings = $this->api_settings;
 			if (!isset($this->oc_container)) {
 				try {
@@ -147,7 +147,7 @@ class RS_CDN {
 		$file_name = (isset($file_name) && !is_null($file_name)) ? $file_name : basename( $file_path );
 
 		// Create file object
-		if ($this->opencloud_version == '1.9.2') {
+		if ($this->opencloud_version == '1.10.0') {
 			return array('file_name' => $file_name, 'file_content' => $file_contents);
 		} else {
 			$file = $container->DataObject();
@@ -174,7 +174,7 @@ class RS_CDN {
 			$file = $this->file_object($container, $file_path, $file_name);
 
 			// Upload object
-			if ($this->opencloud_version == '1.9.2') {
+			if ($this->opencloud_version == '1.10.0') {
 				if ($container->uploadObject($file['file_name'], $file['file_content'])) {
 					return true;
 				}
@@ -219,7 +219,7 @@ class RS_CDN {
 		$container = $this->container_object();
 
 		// Delete object
-		if ($this->opencloud_version == '1.9.2') {
+		if ($this->opencloud_version == '1.10.0') {
 			foreach ($files as $cur_file) {
 				try {
 					$file = $container->getObject($cur_file);

@@ -3,7 +3,7 @@
 Plugin Name: Rackspace CDN
 Plugin URI: http://www.paypromedia.com/
 Description: This plugin stores WordPress media files on, and delivers them from, the Rackspace CDN.
-Version: 1.1.2
+Version: 1.1.3
 Contributors: bstump
 Author URI: http://www.paypromedia.com/individuals/bobbie-stump/
 License: GPLv2
@@ -29,7 +29,7 @@ require_once("admin/functions.php");
 require_once("lib/class.rs_cdn.php");
 if( !class_exists("OpenCloud") ) {
 	if (version_compare(phpversion(), '5.3.3') >= 0) {
-		require_once("lib/php-opencloud-1.9.2/lib/php-opencloud.php");
+		require_once("lib/php-opencloud-1.10.0/lib/php-opencloud.php");
 	} else {
 		require_once("lib/php-opencloud-1.5.10/lib/php-opencloud.php");
 	}
