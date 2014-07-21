@@ -21,7 +21,7 @@ add_action('init','register_session');
 function check_cdn() {
 	// Verify class has been loaded
 	if (!class_exists('RS_CDN')) {
-		require_once("class.rs_cdn.php");
+		require_once(RS_CDN_PATH."lib/class.rs_cdn.php");
 	}
 
 	// Check if CDN exists
