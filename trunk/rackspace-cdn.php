@@ -11,15 +11,6 @@ License: GPLv2
 
 defined('WP_PLUGIN_URL') or die('Restricted access');
 
-global $wpdb;
-
-/**
- *  Define constants
- */
-define('RS_CDN_PATH', ABSPATH.PLUGINDIR.'/rackspace-cloud-files-cdn/');
-define('RS_CDN_URL', WP_PLUGIN_URL.'/rackspace-cloud-files-cdn/');
-define('RS_CDN_OPTIONS', "wp_rs_cdn_settings" );
-
 
 /**
  *  Require scripts and libraries
@@ -34,6 +25,17 @@ if( !class_exists("OpenCloud") ) {
 		require_once("lib/php-opencloud-1.5.10/lib/php-opencloud.php");
 	}
 }
+
+
+global $wpdb;
+
+
+/**
+ *  Define constants
+ */
+define('RS_CDN_PATH', ABSPATH.PLUGINDIR.'/rackspace-cloud-files-cdn/');
+define('RS_CDN_URL', WP_PLUGIN_URL.'/rackspace-cloud-files-cdn/');
+define('RS_CDN_OPTIONS', "wp_rs_cdn_settings" );
 
 
 /**

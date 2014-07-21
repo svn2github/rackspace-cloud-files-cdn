@@ -7,21 +7,6 @@
 
 
 	/**
-	 * Class autoload
-	 */
-	function __autoload($class_name) {
-	    include $class_name . '.php';
-	}
-
-
-	/**
-	 * Verify class has been loaded
-	 */
-	if (!class_exists('RS_CDN', true)) {
-		require_once("../lib/class.rs_cdn.php");
-	}
-
-	/**
 	 * Make sure CDN constants are defined
 	 */
 	defined('RS_CDN_PATH') or die();
@@ -56,7 +41,9 @@
 	 */
 	try {
 		// Create new instance
-		$_SESSION['cdn'] = (isset($_SESSION['cdn'])) ? $_SESSION['cdn'] : new RS_CDN();
+		if (check_cdn() == false) {
+			$show_errors[] = 'Could not create instance of class RS_CDN.';
+		}
 
 		// Check if connection has been made by grabbing container
 		if (!isset($_SESSION['cdn']) || !is_object($_SESSION['cdn']) || is_null($_SESSION['cdn']) || is_null($_SESSION['cdn']->container_object())) {
@@ -94,8 +81,6 @@
 	} else {
 		$cdn_settings = (object) $_SESSION['cdn']->api_settings;
 	}
-	
-	echo 'MANAGE.PHP<br/><pre>'.print_r($_SESSION['cdn']->api_settings, true).'</pre><br/><br/>';
 
 
 	/**

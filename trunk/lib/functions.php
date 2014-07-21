@@ -20,7 +20,7 @@ add_action('init','register_session');
  */
 function check_cdn() {
 	// Verify class has been loaded
-	if (!class_exists('RS_CDN', true)) {
+	if (!class_exists('RS_CDN')) {
 		require_once("class.rs_cdn.php");
 	}
 
@@ -559,6 +559,9 @@ function verify_exists( $file_path ) {
 	} else {
 		$file_url = str_replace($upload_dir['basedir'], $cdn_url, $file_path);
 	}
+
+	// Make sure URL starts with http, if not, prepend it
+	$file_url = (strripos($file_url, 'http') === false) ? 'http://'.$file_url : $file_url;
 
 	// Verify file exists, use curl if "allow_url_fopen" is not allowed
 	if(ini_get('allow_url_fopen')) {
