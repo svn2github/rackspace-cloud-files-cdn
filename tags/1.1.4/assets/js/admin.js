@@ -69,7 +69,7 @@ $rs_cdn(document).ready(function() {
 								}
 
 								// If response is successful
-								if ( response != null && response.response != 'error' ) {
+								if ( response != null && response.response != null && response.response != '' && response.response != 'error' ) {
 									$rs_cdn('#file_upload').html('');
 									rs_cdn_queue_length--;
 									$rs_cdn('#setting-error-settings_updated').html($rs_cdn('#setting-error-settings_updated').html().replace(/ *\([^)]*\) */g, " ("+rs_cdn_queue_length+") "));
