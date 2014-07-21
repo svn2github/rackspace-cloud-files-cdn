@@ -225,32 +225,38 @@ class RS_CDN {
 		// Get container object
 		$container = $this->container_object();
 
-		// Delete object
+		// Delete object(s)
 		if ($this->opencloud_version == '1.10.0') {
 			foreach ($files as $cur_file) {
+				if (trim($cur_file) == '') {
+					continue;
+				}
 				try {
 					$file = $container->getObject($cur_file);
 					try {
 						$file->Delete();
 					} catch (Exception $exc) {
-						return $exc;
+						// Do nothing
 					}
 				} catch (Exception $exc) {
-					return $e;
+					// Do nothing
 				}
 			}
 		} else {
 			foreach ($files as $cur_file) {
+				if (trim($cur_file) == '') {
+					continue;
+				}
 				try {
 					$file = $container->DataObject();
 					$file->name = $cur_file;
 					try {
 						@$file->Delete();
 					} catch (Exception $exc) {
-						return $exc;
+						// Do nothing
 					}
 				} catch (Exception $exc) {
-					return $exc;
+					// Do nothing
 				}
 			}
 			return true;

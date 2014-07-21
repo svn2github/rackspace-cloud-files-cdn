@@ -132,19 +132,45 @@ function remove_cdn_files( $post_id ){
 		// Check if meta value or attached file
 		if ($attachment_metadata[0]->meta_key == '_wp_attached_file') {
 			foreach ($attachment_metadata as $cur_attachment_metadata) {
-				$files_to_delete[] = $cur_attachment_metadata->meta_value;
+				if (count(unserialize($cur_attachment_metadata->meta_value)) > 0) {
+					// Unserialize image data
+					$all_image_sizes = unserialize($cur_attachment_metadata->meta_value);
+
+					// Add main file to delete request
+					if (trim($all_image_sizes['file']) != '') {
+						$files_to_delete[] = $all_image_sizes['file'];
+					}
+
+					// Get attachment folder name
+					$attach_folder = pathinfo($all_image_sizes['file']);
+					$attach_folder = ($attach_folder['dirname'] != '') ? trim($attach_folder['dirname'], '/').'/' : '';
+
+					// Add each thumb to array
+					foreach ($all_image_sizes['sizes'] as $cur_img_size) {
+						// Add attachment to delete queue
+						if (trim($cur_img_size['file']) != '') {
+							$files_to_delete[] = trim($attach_folder.basename($cur_img_size['file']));
+						}
+					}
+				} else {
+					if (trim($cur_attachment_metadata->meta_value) != '') {
+						$files_to_delete[] = $cur_attachment_metadata->meta_value;
+					}
+				}
 			}
 		} else {
 			// Get all image sizes for attachment
 			$all_image_sizes = unserialize($attachment_metadata[0]->meta_value);
-	
+
 			// Get attachment folder name
 			$attach_folder = pathinfo($all_image_sizes['file']);
 			$attach_folder = ($attach_folder['dirname'] != '') ? trim($attach_folder['dirname'], '/').'/' : '';
-	
+
 			// Add main file to delete request
-			$files_to_delete[] = $all_image_sizes['file'];
-	
+			if (trim($all_image_sizes['file']) != '') {
+				$files_to_delete[] = $all_image_sizes['file'];
+			}
+
 			// Delete all thumbnails from CDN
 			foreach ($all_image_sizes['sizes'] as $cur_img_size) {
 				$files_to_delete[] = $attach_folder.basename($cur_img_size['file']);
