@@ -589,27 +589,44 @@ function verify_exists( $file_path ) {
 	// Make sure URL starts with http, if not, prepend it
 	$file_url = (strripos($file_url, 'http') === false) ? 'http://'.$file_url : $file_url;
 
-	// Verify file exists, use curl if "allow_url_fopen" is not allowed
-	if(ini_get('allow_url_fopen')) {
-		if (strstr(current(get_headers($file_url)), "200")) {
-			return true;
-		} else {
-			return false;
+	// Verify file exists, try to use curl first
+	if (function_exists('curl_version')) {
+		// Get headers via curl
+		$curl = curl_init($file_url);
+		curl_setopt($curl, CURLOPT_NOBODY, true);
+		$result = curl_exec($curl);
+		if ($result !== false) {
+			try {
+				$status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+				if ($status_code == 200) {
+					curl_close($curl);
+					return true;   
+				} else {
+					curl_close($curl);
+					return false;
+				}
+			} catch (Exception $exc) {
+				// Get headers via PHP's get_headers function
+				if (ini_get('allow_url_fopen')) {
+					if (strstr(current(get_headers($file_url)), "200")) {
+						return true;
+					} else {
+						return false;
+					}
+				}
+			}
 		}
+		curl_close($curl);
 	} else {
-		$ch = curl_init($file_url);
-		curl_setopt($ch, CURLOPT_NOBODY, true);
-		curl_exec($ch);
-		curl_close($ch);
-		$return_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		if ($return_code == 200) {
+		// Get headers via PHP's get_headers function
+		if (strstr(current(get_headers($file_url)), "200")) {
 			return true;
 		} else {
 			return false;
 		}
 	}
 
-	return true;
+	return false;
 }
 
 
