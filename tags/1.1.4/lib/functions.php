@@ -198,7 +198,7 @@ function verify_filename($filename, $filename_raw = null) {
 
 	// Get CDN information
 	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-		 $cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
+		 $cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
 		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
@@ -468,7 +468,7 @@ function set_cdn_path($attachment) {
 	// Get public CDN URL
 	try {
 		if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-			 $cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
+			 $cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
 		} else {
 			$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 		}
@@ -571,7 +571,7 @@ function verify_exists( $file_path ) {
 
 	// Get CDN URL
 	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-		$cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
+		$cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
 		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
