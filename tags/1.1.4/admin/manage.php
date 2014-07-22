@@ -227,7 +227,7 @@
 				</tr>
 				<tr valign="top">
 					<th scope="row">
-						<label for="rs_cdn[custom_cname]">Custom CNAME <?php echo '('.$cdn_settings->custom_cname.')' ?></label>
+						<label for="rs_cdn[custom_cname]">Custom CNAME</label>
 					</th>
 					<td>
 						<input name="rs_cdn[custom_cname]" id="rs_cdn_custom_cname" type="text" value="<?php echo (isset($cdn_settings->custom_cname)) ? $cdn_settings->custom_cname : '';?>" class="regular-text" />
