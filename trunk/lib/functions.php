@@ -77,6 +77,8 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value='') {
 				@unlink($cur_file);
 			}
 		}
+
+		return true;
     }
 
 	// Check attached file meta
@@ -109,6 +111,8 @@ function upload_images($meta_id, $post_id, $meta_key='', $meta_value='') {
 			    @unlink($cur_file);
 		    }
 		}
+
+		return true;
     }
 }
 add_action('added_post_meta', 'upload_images', 10, 4);
@@ -198,7 +202,7 @@ function verify_filename($filename, $filename_raw = null) {
 
 	// Get CDN information
 	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-		 $cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
+		 $cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
 		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
@@ -268,7 +272,7 @@ function get_files_to_sync() {
 
 	// Get CDN objects
 	$local_objects = get_local_files();
-	$remote_objects = get_cdn_objects();
+	$remote_objects = $_SESSION['cdn']->get_cdn_objects(true);
 
 	// If CDN objects is null, we need to return an error because we couldn't fetch them
 	if (is_null($remote_objects)) {
@@ -293,37 +297,6 @@ function get_files_to_sync() {
 
 	// Return array of files that need synchronized
 	return array('upload' => $objects_to_upload, 'download' => $objects_to_download);
-}
-
-
-/**
-*  Get list of Openstack CDN objects
-*/
-function get_cdn_objects() {
-	// Ensure CDN instance exists
-	if (check_cdn() === false) {
-		return array('response' => 'fail', 'message' => 'Error instantiating CDN session.');
-	}
-
-	// Set array to store CDN objects
-	$cdn_objects = array();
-
-	// Get objects
-	if ($_SESSION['cdn']->opencloud_version == '1.10.0') {
-		$oc_service = $_SESSION['cdn']->opencloud_client()->objectStoreService('cloudFiles', $_SESSION['cdn']->api_settings->region);
-		$objects = $oc_service->getContainer($_SESSION['cdn']->api_settings->container)->objectList();
-		foreach ($objects as $object) {
-			$cdn_objects[] = array('file_name' => $object->getName(), 'file_size' => $object->getContentLength());
-		}
-	} else {
-		$files = $_SESSION['cdn']->container_object()->objectList();
-		while ($file = $files->next()) {
-			$cdn_objects[] = array('file_name' => $file->name, 'file_size' => $file->bytes);
-		}
-	}
-
-	// Return CDN objects
-	return $cdn_objects;
 }
 
 
@@ -381,6 +354,9 @@ function sync_existing_file() {
 				@unlink($file_to_sync);
 			}
 		}
+
+		// Force CDN object cache
+		$_SESSION['cdn']->force_object_cache();
 	} else {
 		// Download file - Get CDN URL
 		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
@@ -446,6 +422,9 @@ function remove_existing_file() {
 		}
 	}
 
+	// Force CDN object cache
+	$_SESSION['cdn']->force_object_cache();
+
 	// Let the browser know upload was successful
 	echo json_encode(array('response' => 'success', 'file_path' => $upload_dir['basedir'].'/'.$file_to_sync));
 	die();
@@ -468,7 +447,7 @@ function set_cdn_path($attachment) {
 	// Get public CDN URL
 	try {
 		if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-			 $cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
+			 $cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 		} else {
 			$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 		}
@@ -564,6 +543,7 @@ function get_local_files() {
  *	Verify file exists
  */
 function verify_exists( $file_path ) {
+
 	// Ensure CDN instance exists
 	if (check_cdn() === false) {
 		return false;
@@ -571,7 +551,7 @@ function verify_exists( $file_path ) {
 
 	// Get CDN URL
 	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
-		$cdn_url = (stripos($_SESSION['cdn']->api_settings->custom_cname, 'http') === false) ? 'http://'.$_SESSION['cdn']->api_settings->custom_cname : $_SESSION['cdn']->api_settings->custom_cname;
+		$cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
 		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
 	}
@@ -579,53 +559,43 @@ function verify_exists( $file_path ) {
 	// Define variables needed
 	$upload_dir = wp_upload_dir();
 
-	// Set CDN URL
-	if (stripos($file_path, $cdn_url) === false) {
-		$file_url = $cdn_url.'/'.$file_path;
-	} else {
-		$file_url = str_replace($upload_dir['basedir'], $cdn_url, $file_path);
+	// Replace CDN URL, base URL or base uploads directory
+	$file_url = str_replace($cdn_url.'/', '', $file_path);
+	$file_url = str_replace($upload_dir['baseurl'].'/', '', $file_url);
+	$file_url = str_replace($upload_dir['basedir'].'/', '', $file_url);
+
+	// Return true/false if file exists on CDN or not
+	return find_file_name($file_url);
+}
+
+
+/**
+ * Multidimensional array search
+ */
+function find_file_name($file_name) {
+	// Ensure CDN instance exists
+	if (check_cdn() === false) {
+		return false;
 	}
 
-	// Make sure URL starts with http, if not, prepend it
-	$file_url = (strripos($file_url, 'http') === false) ? 'http://'.$file_url : $file_url;
-
-	// Verify file exists, try to use curl first
-	if (function_exists('curl_version')) {
-		// Get headers via curl
-		$curl = curl_init($file_url);
-		curl_setopt($curl, CURLOPT_NOBODY, true);
-		$result = curl_exec($curl);
-		if ($result !== false) {
-			try {
-				$status_code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-				if ($status_code == 200) {
-					curl_close($curl);
-					return true;   
-				} else {
-					curl_close($curl);
-					return false;
-				}
-			} catch (Exception $exc) {
-				// Get headers via PHP's get_headers function
-				if (ini_get('allow_url_fopen')) {
-					if (strstr(current(get_headers($file_url)), "200")) {
-						return true;
-					} else {
-						return false;
-					}
-				}
-			}
-		}
-		curl_close($curl);
+	// Get CDN URL
+	if (isset($_SESSION['cdn']->api_settings->custom_cname) && trim($_SESSION['cdn']->api_settings->custom_cname) != '') {
+		$cdn_url = $_SESSION['cdn']->api_settings->custom_cname;
 	} else {
-		// Get headers via PHP's get_headers function
-		if (strstr(current(get_headers($file_url)), "200")) {
+		$cdn_url = (isset($_SESSION['cdn']->api_settings->use_ssl)) ? get_cdn_url('ssl') : get_cdn_url();
+	}
+
+	// Get CDN objects
+	$cdn_objects = $_SESSION['cdn']->get_cdn_objects();
+
+	// Loop through and see if we can find the file name
+	foreach ($cdn_objects as $cur_cdn_object) {
+		if ($cur_cdn_object['file_name'] === $file_name) {
 			return true;
-		} else {
-			return false;
-		}
+		} 
 	}
 
+	// Return false by default
 	return false;
 }
 

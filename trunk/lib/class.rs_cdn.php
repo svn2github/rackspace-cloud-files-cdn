@@ -42,6 +42,8 @@ class RS_CDN {
 		$settings->apiKey = (isset($custom_settings->apiKey)) ? $custom_settings->apiKey : 'API Key';
 		$settings->use_ssl = (isset($custom_settings->use_ssl)) ? $custom_settings->use_ssl : false;
 		$settings->container = (isset($custom_settings->container)) ? $custom_settings->container : 'default';
+		$settings->cache_cdn_objects = (isset($custom_settings->cache_cdn_objects)) ? $custom_settings->cache_cdn_objects : 15;
+		$settings->last_cache_time = (isset($custom_settings->last_cache_time)) ? $custom_settings->last_cache_time : null;
 		$settings->cdn_url = (isset($custom_settings->cdn_url)) ? $custom_settings->cdn_url : null;
 		$settings->files_to_ignore = (isset($custom_settings->files_to_ignore)) ? $custom_settings->files_to_ignore : null;
 		$settings->remove_local_files = (isset($custom_settings->remove_local_files)) ? $custom_settings->remove_local_files : false;
@@ -215,6 +217,63 @@ class RS_CDN {
 		}
 
 		return false;
+	}
+
+
+	/**
+	*  Get list of CDN objects
+	*/
+	public function get_cdn_objects( $force_cache = false ) {
+		// Get time difference
+		$this->api_settings->last_cache_time = (isset($this->api_settings->last_cache_time)) ? $this->api_settings->last_cache_time : time();
+		$time_diff = (time()-$this->api_settings->last_cache_time)/60;
+
+		// If caching is set, return CDN cache
+		if (isset($this->api_settings->cache_cdn_objects) && $this->api_settings->cache_cdn_objects > 0) {
+			if (isset($_SESSION['cdn_object_cache']) && $time_diff < $this->api_settings->cache_cdn_objects && $force_cache === false) {
+				return $_SESSION['cdn_object_cache'];
+			}
+			
+		}
+
+		// Ensure CDN instance exists
+		if (check_cdn() === false) {
+			return array('response' => 'fail', 'message' => 'Error instantiating CDN session.');
+		}
+
+		// Set array to store CDN objects
+		$cdn_objects = array();
+
+		// Get objects
+		if ($this->opencloud_version == '1.10.0') {
+			$oc_service = $this->opencloud_client()->objectStoreService('cloudFiles', $this->api_settings->region);
+			$objects = $oc_service->getContainer($this->api_settings->container)->objectList();
+			foreach ($objects as $object) {
+				$cdn_objects[] = array('file_name' => $object->getName(), 'file_size' => $object->getContentLength());
+			}
+		} else {
+			$files = $this->container_object()->objectList();
+			while ($file = $files->next()) {
+				$cdn_objects[] = array('file_name' => $file->name, 'file_size' => $file->bytes);
+			}
+		}
+
+		// Set object cache
+		if ((isset($this->api_settings->cache_cdn_objects) && $this->api_settings->cache_cdn_objects > 0) || $force_cache == true) {
+			$this->api_settings->last_cache_time = time();
+			$_SESSION['cdn_object_cache'] = $cdn_objects;
+		}
+
+		// Return CDN objects
+		return $cdn_objects;
+	}
+
+
+	/**
+	 * Force CDN object cache
+	 */
+	public function force_object_cache() {
+		$this->get_cdn_objects( true );
 	}
 
 

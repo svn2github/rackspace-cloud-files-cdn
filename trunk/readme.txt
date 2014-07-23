@@ -12,9 +12,9 @@ Syncs and serves all of your WordPress media via Rackspace's Cloud Files CDN.
 
 Syncs and serves all of your WordPress media via Rackspace's Cloud Files CDN. You can sync the media and keep it on your local server (using disk space on both your local server and the CDN) or you can opt to remove media from your local server once it has been synced to the CDN (saving you disk space at your hosting provider, reducing your costs).
 
-= Version 1.1.4 =
+= Version 1.1.5 =
 
-General bug fixes.
+General bug fixes. CDN object caching to speed up response time.
 
 == Installation ==
 
@@ -70,7 +70,12 @@ General bug fixes.
 = 1.1.4 =
 * General bug fixes
 
+= 1.1.5 =
+* General bug fixes
+* CDN object caching to speed up response time
+
 == Upgrade Notice ==
 
-= 1.1.4 =
+= 1.1.5 =
 * General bug fixes
+* CDN object caching to speed up response time

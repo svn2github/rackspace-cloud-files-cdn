@@ -69,6 +69,8 @@
 			$cdn_settings->apiKey = 'API Key';
 			$cdn_settings->use_ssl = false;
 			$cdn_settings->container = 'default';
+			$cdn_settings->cache_cdn_objects = 15;
+			$cdn_settings->last_cache_time = null;
 			$cdn_settings->files_to_ignore = null;
 			$cdn_settings->remove_local_files = false;
 			$cdn_settings->custom_cname = null;
@@ -223,6 +225,15 @@
 					<td>
 						<input name="rs_cdn[container]" type="text" value="<?php echo $cdn_settings->container;?>" class="regular-text" required="required" />
 						<input name="rs_cdn_old[container]" type="hidden" value="<?php echo $cdn_settings->container; ?>" />
+					</td>
+				</tr>
+				<tr valign="top">
+					<th scope="row">
+						<label for="rs_cdn[cache_cdn_objects]">Cache Object List</label>
+					</th>
+					<td>
+						<input name="rs_cdn[cache_cdn_objects]" type="text" value="<?php echo (isset($cdn_settings->cache_cdn_objects)) ? $cdn_settings->cache_cdn_objects : '10' ?>" class="regular-text" required="required" /> Minutes<br/>
+						<span class="description">How long do you want to cache the object list? Default is 0 minutes.<br/>This will save some CDN bandwidth and should improve response time.</span>
 					</td>
 				</tr>
 				<tr valign="top">
