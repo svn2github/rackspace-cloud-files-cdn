@@ -46,12 +46,14 @@ class RS_CDN {
 		$this->api_settings = (object) $settings;
 
 		// Set container object
-		$this->oc_container = $this->container_object();
+		try {
+    		$the_container_obj = $this->container_object();
 
-        // If container is false, return false
-        if ($this->oc_container === false) {
-            return false;
-        }
+            // Assign container object
+            $this->oc_container = $the_container_obj;
+		} catch (Exception $exc) {
+    		return false;
+		}
 	}
 
 
@@ -83,7 +85,8 @@ class RS_CDN {
             $this->oc_connection = $cdn;
             return $this->oc_connection;
         } catch (Exception $exc) {
-            return false;
+            $this->oc_connection = null;
+            return null;
         }
 	}
 
@@ -101,6 +104,11 @@ class RS_CDN {
 		// Get settings
 		$api_settings = $this->api_settings;
 
+        // Check if connection object is valid
+        if ($this->connection_object() === false) {
+            return null;
+        }
+
 		// Setup container
 		try {
 			// Try to set container
@@ -109,7 +117,8 @@ class RS_CDN {
             // Return container
     		return $this->oc_container;
 		} catch (Exception $exc) {
-			return false;
+			$this->oc_container = null;
+			return null;
 		}
 	}
 

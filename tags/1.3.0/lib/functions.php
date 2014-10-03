@@ -31,10 +31,8 @@ function check_cdn() {
 		return false;
 	}
 
-    // Check if connection object and container object are null
-    $conn_obj = $_SESSION['cdn']->connection_object();
-    $cont_obj = $_SESSION['cdn']->container_object();
-    if ($conn_obj === false || $cont_obj === false) {
+    // Check if connection OR container objects are null, if so, return false
+    if (is_null($_SESSION['cdn']->connection_object()) || is_null($_SESSION['cdn']->container_object())) {
         return false;
     }
 
