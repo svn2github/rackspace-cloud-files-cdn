@@ -47,6 +47,11 @@ class RS_CDN {
 
 		// Set container object
 		$this->oc_container = $this->container_object();
+
+        // If container is false, return false
+        if ($this->oc_container === false) {
+            return false;
+        }
 	}
 
 
@@ -80,7 +85,7 @@ class RS_CDN {
 	*  Retrieve Openstack CDN Container Object
 	*/
 	public function container_object() {
-		// If container object is already set, return it
+	    // If container object is already set, return it
 		if (isset($this->oc_container)) {
 			return $this->oc_container;
 		}
@@ -92,8 +97,7 @@ class RS_CDN {
 		try {
 			$this->oc_container = $this->connection_object()->Container($api_settings->container);
 		} catch (Exception $exc) {
-			$_SESSION['cdn'] = new RS_CDN();
-			return $_SESSION['cdn']->oc_container;
+			return false;
 		}
 
         // Return container

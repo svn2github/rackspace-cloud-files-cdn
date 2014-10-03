@@ -31,6 +31,11 @@ function check_cdn() {
 		return false;
 	}
 
+    // Check that container is set
+    if ($_SESSION['cdn']->container_object() == false) {
+        return false;
+    }
+
 	// Session created successfully
 	return true;
 }
