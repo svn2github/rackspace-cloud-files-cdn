@@ -105,7 +105,7 @@ class RS_CDN {
 		$api_settings = $this->api_settings;
 
         // Check if connection object is valid
-        if ($this->connection_object() === false) {
+        if (is_null($this->connection_object())) {
             return null;
         }
 

@@ -1,98 +1,271 @@
 <?php
-/*
-Plugin Name: Rackspace CDN
-Plugin URI: http://www.paypromedia.com/
-Description: This plugin stores WordPress media files on, and delivers them from, the Rackspace CDN.
-Version: 1.3.0
-Contributors: bstump
-Author URI: http://www.paypromedia.com/individuals/bobbie-stump/
-License: GPLv2
-*/
-
-defined('WP_PLUGIN_URL') or die('Restricted access');
-
-
 /**
- *  Require scripts and libraries
+ * Functions used to connect to the CDN
  */
-require_once("lib/functions.php");
-require_once("admin/functions.php");
-require_once("lib/class.rs_cdn.php");
-if( !class_exists("OpenCloud") ) {
-	require_once("lib/php-opencloud-1.5.10/lib/php-opencloud.php");
-}
-
-
+ 
 /**
- *  Define constants
- */
-define('RS_CDN_PATH', ABSPATH.PLUGINDIR.'/rackspace-cloud-files-cdn/');
-define('RS_CDN_URL', WP_PLUGIN_URL.'/rackspace-cloud-files-cdn/');
-define('RS_CDN_OPTIONS', "wp_rs_cdn_settings" );
-
-
-/**
- * Define globals
+ * Include global vars
  */
 global $wpdb;
 
 
 /**
- *  Run when plugin is installed
+ * CDN class
  */
-function rscdn_install() {
-	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+class RS_CDN {
 
-	global $wpdb;
 
-	// Add default CDN settings
-	$cdn_settings = new stdClass();
-	$cdn_settings->username = 'Username';
-	$cdn_settings->apiKey = 'API Key';
-	$cdn_settings->use_ssl = false;
-	$cdn_settings->container = 'default';
-	$cdn_settings->cdn_url = null;
-	$cdn_settings->files_to_ignore = null;
-	$cdn_settings->remove_local_files = false;
-	$cdn_settings->verified = false;
-	$cdn_settings->custom_cname = null;
-	$cdn_settings->region = 'ORD';
-	$cdn_settings->url = 'https://identity.api.rackspacecloud.com/v2.0/';
-	add_option( RS_CDN_OPTIONS, $cdn_settings, '', 'yes' );
+	public $oc_connection;
+	public $oc_container;
+	public $cdn_url;
+	public $api_settings;
+	public $uploads;
 
-    // If CDN var is already set, unset it
-    unset($_SESSION['cdn']);
+
+	/**
+	 *  Create new Openstack Object
+	 */
+	function __construct($custom_settings = null, $oc_version = null) {
+		// Get settings, if they exist
+		(object) $custom_settings = (!is_null($custom_settings)) ? $custom_settings : get_option( RS_CDN_OPTIONS );
+
+		// Set settings
+		$settings = new stdClass();
+		$settings->username = (isset($custom_settings->username)) ? $custom_settings->username : 'Username';
+		$settings->apiKey = (isset($custom_settings->apiKey)) ? $custom_settings->apiKey : 'API Key';
+		$settings->use_ssl = (isset($custom_settings->use_ssl)) ? $custom_settings->use_ssl : false;
+		$settings->container = (isset($custom_settings->container)) ? $custom_settings->container : 'default';
+		$settings->cdn_url = (isset($custom_settings->cdn_url)) ? $custom_settings->cdn_url : null;
+		$settings->files_to_ignore = (isset($custom_settings->files_to_ignore)) ? $custom_settings->files_to_ignore : null;
+		$settings->remove_local_files = (isset($custom_settings->remove_local_files)) ? $custom_settings->remove_local_files : false;
+		$settings->custom_cname = (isset($custom_settings->custom_cname)) ? $custom_settings->custom_cname : null;
+		$settings->region = (isset($custom_settings->region)) ? $custom_settings->region : 'ORD';
+		$settings->url = (isset($custom_settings->url)) ? $custom_settings->url : 'https://identity.api.rackspacecloud.com/v2.0/';
+
+		// Set API settings
+		$this->api_settings = (object) $settings;
+
+		// Set container object
+		try {
+    		$the_container_obj = $this->container_object();
+
+            // Assign container object
+            $this->oc_container = $the_container_obj;
+		} catch (Exception $exc) {
+    		return false;
+		}
+	}
+
+
+	/**
+	 *  Openstack Connection Object
+	 */
+	function connection_object(){
+		// If connection object is already set, return it
+		if (isset($this->oc_connection)) {
+			// Return existing connection object
+			return $this->oc_connection;
+		}
+
+		// Get settings
+		$api_settings = $this->api_settings;
+
+        // Create connection object
+		$connection = new \OpenCloud\Rackspace(
+			$api_settings->url,
+			array(
+				'username' => $api_settings->username,
+				'apiKey' => $api_settings->apiKey
+			)
+		);
+
+        // Try to create connection object
+        try {
+            $cdn = $connection->ObjectStore( 'cloudFiles', $api_settings->region, 'publicURL' );
+            $this->oc_connection = $cdn;
+            return $this->oc_connection;
+        } catch (Exception $exc) {
+            $this->oc_connection = null;
+            return null;
+        }
+	}
+
+
+	/**
+	*  Retrieve Openstack CDN Container Object
+	*/
+	public function container_object() {
+	    // If container object is already set, return it
+		if (isset($this->oc_container)) {
+			// Return existing container
+			return $this->oc_container;
+		}
+
+		// Get settings
+		$api_settings = $this->api_settings;
+
+        // Check if connection object is valid
+        if (is_null($this->connection_object())) {
+            return null;
+        }
+
+		// Setup container
+		try {
+			// Try to set container
+			$this->oc_container = $this->connection_object()->Container($api_settings->container);
+
+            // Return container
+    		return $this->oc_container;
+		} catch (Exception $exc) {
+			$this->oc_container = null;
+			return null;
+		}
+	}
+
+
+	/**
+	*  Create Openstack CDN File Object
+	*/
+	public function file_object($container, $file_path, $file_name = null){
+		// Get file content
+		$file_contents = @file_get_contents( $file_path );
+		$file_name = (isset($file_name) && !is_null($file_name)) ? $file_name : basename( $file_path );
+
+		// Create file object
+		$file = $container->DataObject();
+		$file->SetData( $file_contents );
+		$file->name = $file_name;
+		return $file;
+	}
+
+
+	/**
+	* Uploads given file attachment to CDN
+	*/
+	public function upload_file( $file_path , $file_name = null, $existing_container = null, $post_id = null){
+		global $wpdb;
+
+		// Check if file exists
+		$check_file_name = (isset($file_name)) ? $file_name : basename($file_path);
+
+		// Get ready to upload file to CDN
+		$container = $this->container_object();
+		$file = $this->file_object($container, $file_path, $file_name);
+
+		// Upload object
+		$content_type = get_content_type( $file_path );
+		if ($content_type !== false) {
+			if ($file->Create(array('content_type' => $content_type))) {
+				return true;
+			}
+		} else {
+			if ($file->Create()) {
+				return true;
+			}
+		}
+
+		// Upload failed, remove local images
+		if (stripos($file_path, 'http') == 0) {
+			$upload_dir = wp_upload_dir();
+			$file_path = str_replace($upload_dir['baseurl'], $upload_dir['basedir'], $file_path);
+			unlink($file_path);
+		} else {
+			unlink($file_path);
+		}
+
+		// Upload failed, remove attachment from db
+		if (isset($post_id)) {
+			$wpdb->query("DELETE FROM $wpdb->posts WHERE ID='$post_id' AND post_type='attachment'");
+			$wpdb->query("DELETE FROM $wpdb->postmeta WHERE post_id='$post_id'");
+		}
+
+		return false;
+	}
+
+
+	/**
+	*  Get list of CDN objects
+	*/
+	public function get_cdn_objects( $force_cache = false ) {
+		// Ensure CDN instance exists
+		if (check_cdn() === false) {
+			return array();
+		}
+
+	    // Path to cache file
+	    $cache_file_path = RS_CDN_PATH.'object_cache';
+
+		// Set array to store CDN objects
+		$cdn_objects = array();
+
+        // Check if caching is enabled
+        if ($force_cache === true || !is_writable(RS_CDN_PATH) || !is_writable($cache_file_path)) {
+    		// Update object cache
+            try {
+                $objects = $this->container_object()->objectList();
+            } catch (Exception $exc) {
+                return array();
+            }
+
+            // Setup objects
+            $cdn_objects = array();
+            foreach ($objects as $object) {
+                $cdn_objects[] = array('fn' => $object['name'], 'fs' => $object['bytes']);
+            }
+
+            // Write files to cache file
+            if (is_writable(RS_CDN_PATH) && is_writable($cache_file_path)) {
+                // Write to cache file
+                file_put_contents($cache_file_path, json_encode($cdn_objects));
+            }
+
+    		// Return CDN objects
+    		return $cdn_objects;
+        } else {
+            // Return caching
+            return json_decode(file_get_contents($cache_file_path), true);
+        }
+	}
+
+
+	/**
+	 * Force CDN object cache
+	 */
+	public function force_object_cache() {
+		$this->get_cdn_objects( true );
+	}
+
+
+	/**
+	* Removes given file attachment(s) from CDN
+	*/
+	public function delete_files( $files ) {
+		// Get container object
+		$container = $this->container_object();
+
+		// Delete object(s)
+		if (count($files) > 0) {
+			foreach ($files as $cur_file) {
+				if (trim($cur_file) == '') {
+					continue;
+				}
+				try {
+					$file = $container->DataObject();
+					$file->name = $cur_file;
+					try {
+						@$file->Delete();
+					} catch (Exception $exc) {
+						// Do nothing
+					}
+				} catch (Exception $exc) {
+					// Do nothing
+				}
+			}
+
+            // Force CDN cache because we removed files
+            $this->force_object_cache();
+		}
+		return true;
+	}
 }
-register_activation_hook( __FILE__, 'rscdn_install' );
-
-
-/**
- *  Run when plugin is uninstalled
- */
-function rscdn_uninstall() {
-	global $wpdb;
-
-	// Delete single site option
-	@delete_option( RS_CDN_OPTIONS );
-
-	// Delete multisite option
-	@delete_site_option( RS_CDN_OPTIONS );
-
-	// Delete failed uploads table
-	$wpdb->query( "DROP TABLE IF EXISTS ".$wpdb->prefix."rscdn_failed_uploads" );
-
-    // Remove session
-    unset($_SESSION['cdn']);
-}
-register_uninstall_hook( __FILE__, 'rscdn_uninstall' );
-
-
-/**
- *  Register and enqueue admin JavaScript
- */
-function rs_cdn_admin_js() {
-	wp_enqueue_script('media-upload');
-	wp_enqueue_script('admin-js', RS_CDN_URL.'assets/js/admin.js');
-}
-add_action('admin_enqueue_scripts', 'rs_cdn_admin_js');
 ?>
