@@ -61,11 +61,14 @@ class RS_CDN {
 	function connection_object(){
 		// If connection object is already set, return it
 		if (isset($this->oc_connection)) {
+			// Return existing connection object
 			return $this->oc_connection;
 		}
 
-		// Get settings and connection object
+		// Get settings
 		$api_settings = $this->api_settings;
+
+        // Create connection object
 		$connection = new \OpenCloud\Rackspace(
 			$api_settings->url,
 			array(
@@ -74,10 +77,14 @@ class RS_CDN {
 			)
 		);
 
-		// Return connection object
-		$cdn = $connection->ObjectStore( 'cloudFiles', $api_settings->region, 'publicURL' );
-		$this->oc_connection = $cdn;
-		return $cdn;
+        // Try to create connection object
+        try {
+            $cdn = $connection->ObjectStore( 'cloudFiles', $api_settings->region, 'publicURL' );
+            $this->oc_connection = $cdn;
+            return $this->oc_connection;
+        } catch (Exception $exc) {
+            return false;
+        }
 	}
 
 
@@ -87,6 +94,7 @@ class RS_CDN {
 	public function container_object() {
 	    // If container object is already set, return it
 		if (isset($this->oc_container)) {
+			// Return existing container
 			return $this->oc_container;
 		}
 
@@ -95,13 +103,14 @@ class RS_CDN {
 
 		// Setup container
 		try {
+			// Try to set container
 			$this->oc_container = $this->connection_object()->Container($api_settings->container);
+
+            // Return container
+    		return $this->oc_container;
 		} catch (Exception $exc) {
 			return false;
 		}
-
-        // Return container
-		return $this->oc_container;
 	}
 
 
@@ -183,7 +192,11 @@ class RS_CDN {
         // Check if caching is enabled
         if ($force_cache === true || !is_writable(RS_CDN_PATH) || !is_writable($cache_file_path)) {
     		// Update object cache
-            $objects = $this->container_object()->objectList();
+            try {
+                $objects = $this->container_object()->objectList();
+            } catch (Exception $exc) {
+                return array();
+            }
 
             // Setup objects
             $cdn_objects = array();

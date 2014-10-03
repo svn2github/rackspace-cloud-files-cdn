@@ -31,6 +31,13 @@ function check_cdn() {
 		return false;
 	}
 
+    // Check if connection object and container object are null
+    $conn_obj = $_SESSION['cdn']->connection_object();
+    $cont_obj = $_SESSION['cdn']->container_object();
+    if ($conn_obj === false || $cont_obj === false) {
+        return false;
+    }
+
 	// Session created successfully
 	return true;
 }
