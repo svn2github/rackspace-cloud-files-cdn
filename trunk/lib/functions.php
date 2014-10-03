@@ -31,11 +31,6 @@ function check_cdn() {
 		return false;
 	}
 
-    // Check that container is set
-    if ($_SESSION['cdn']->container_object() == false) {
-        return false;
-    }
-
 	// Session created successfully
 	return true;
 }
@@ -472,11 +467,12 @@ function set_cdn_path($attachment) {
 		return $attachment;
 	}
 
-    // Loop through attachments and rewrite with CDN URL if they are on the CDN
-    preg_match_all('/(http|https).*?\/wp\-content\/.*?\.[a-z]{3}+/i', $attachment, $attachments);
+    // Get base URL defined for uploads
+    $base_uploads_url = str_replace(array('http://','https://'), '(http|https)://', $upload_data['baseurl']);
+    $base_uploads_url = str_replace('/', '\/', $base_uploads_url);
 
-    // Get current user
-    $current_user = wp_get_current_user();
+    // Loop through attachments and rewrite with CDN URL if they are on the CDN
+    preg_match_all('/'.$base_uploads_url.'\/.*?\.[a-z]{3}+/i', $attachment, $attachments);
 
     // Get attachments and check if on CDN
     if (count($attachments) > 0) {
@@ -486,7 +482,7 @@ function set_cdn_path($attachment) {
                 if ($cur_attachment != 'http' && $cur_attachment != 'https') {
                     // Verify attachment exists
                     $new_attachment = trim(str_replace($local_uploads_url, '', $cur_attachment), '/');
-
+                    
                     // If we are good to go, return the attachment
                     if (verify_exists( $new_attachment )) {
                         $attachment = str_replace($cur_attachment, $cdn_url.'/'.$new_attachment, $attachment);
